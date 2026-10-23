@@ -1,0 +1,31 @@
+# Blueprint de Render: en Render -> New -> Blueprint, elige este repositorio.
+services:
+  - type: web
+    name: recoleccta-api
+    runtime: python
+    plan: free
+    rootDir: backend_py
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.1
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+      - key: DATABASE_URL        # Service URI de Aiven (mysql://avnadmin:...@...aivencloud.com:PUERTO/defaultdb?ssl-mode=REQUIRED)
+        sync: false
+      - key: ADMIN_EMAIL         # tu correo de administrador
+        sync: false
+      - key: ADMIN_PASSWORD      # contraseña del administrador
+        sync: false
+      - key: ADMIN_NAME
+        value: Administrador
+      - key: BREVO_API_KEY       # para enviar el código OTP por correo (opcional)
+        sync: false
+      - key: MAIL_FROM           # correo remitente verificado en Brevo
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Recoleccta
