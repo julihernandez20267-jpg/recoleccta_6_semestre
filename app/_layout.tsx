@@ -6,6 +6,7 @@ import { AppState, Modal, Platform, Pressable, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import '@/services/webAlert';
 
+import { WebAlertHost } from '@/components/WebAlertHost';
 import { Colors } from '@/constants/Colors';
 import { homeRouteFor } from '@/constants/Roles';
 import { Typography } from '@/constants/Typography';
@@ -151,6 +152,7 @@ function RootLayoutContent() {
         </Stack>
       </View>
       <StatusBar style="auto" />
+      {Platform.OS === 'web' ? <WebAlertHost /> : null}
 
       {/* Modal de advertencia de sesión expirada */}
       <Modal

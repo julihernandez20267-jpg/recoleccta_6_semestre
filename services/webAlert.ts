@@ -1,27 +1,39 @@
 import { Alert, AlertButton, Platform } from 'react-native';
 
-// En el navegador, Alert.alert de React Native no muestra nada. Aquí se reemplaza por los
-// diálogos del navegador para que avisos y confirmaciones funcionen igual que en el celular.
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
+// En el navegador, Alert.alert de React Native no muestra nada, y algunos navegadores bloquean
+// window.confirm. Por eso en web los avisos se envían a WebAlertHost, que los dibuja dentro de la app.
+
+export type WebAlertRequest = {
+  id: number;
+  title: string;
+  message?: string;
+  buttons: AlertButton[];
+};
+
+type Listener = (request: WebAlertRequest) => void;
+
+let listener: Listener | null = null;
+let nextId = 1;
+
+export function subscribeWebAlerts(fn: Listener) {
+  listener = fn;
+  return () => {
+    if (listener === fn) listener = null;
+  };
+}
+
+if (Platform.OS === 'web') {
   Alert.alert = (title: string, message?: string, buttons?: AlertButton[]) => {
-    const text = [title, message].filter(Boolean).join('\n\n');
-    if (!buttons || buttons.length <= 1) {
-      window.alert(text);
-      buttons?.[0]?.onPress?.();
-      return;
-    }
-
-    const cancel = buttons.find((b) => b.style === 'cancel');
-    const actions = buttons.filter((b) => b !== cancel);
-    // Con dos opciones sin "cancelar", Aceptar = la primera y Cancelar = la segunda.
-    const accept = actions[0];
-    const decline = cancel ?? actions[1];
-    const hint = decline?.text ? `\n\n(Aceptar: ${accept.text} · Cancelar: ${decline.text})` : '';
-
-    if (window.confirm(text + hint)) {
-      accept.onPress?.();
-    } else {
-      decline?.onPress?.();
+    const request: WebAlertRequest = {
+      id: nextId++,
+      title,
+      message,
+      buttons: buttons && buttons.length > 0 ? buttons : [{ text: 'Aceptar' }],
+    };
+    if (listener) {
+      listener(request);
+    } else if (typeof window !== 'undefined') {
+      window.alert([title, message].filter(Boolean).join('\n\n'));
     }
   };
 }
