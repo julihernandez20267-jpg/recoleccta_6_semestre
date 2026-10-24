@@ -81,6 +81,8 @@ class ContainerRequestIn(BaseModel):
     oil_type: str = Field(min_length=1, max_length=20)
     quantity: int = Field(default=1, ge=1, le=10)
     address: str = Field(min_length=1, max_length=255)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     notes: Optional[str] = Field(default=None, max_length=1000)
 
 

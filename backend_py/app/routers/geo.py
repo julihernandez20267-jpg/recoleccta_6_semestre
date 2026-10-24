@@ -11,6 +11,7 @@ from app.security import get_current_user
 router = APIRouter(prefix="/geo", tags=["geo"])
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
+OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
 
 
 @lru_cache(maxsize=512)
@@ -50,3 +51,35 @@ def reverse_geocode(
     except (httpx.HTTPError, ValueError):
         raise HTTPException(status_code=502, detail="No pudimos convertir la ubicación en una dirección.")
     return ok("OK", **data)
+
+
+@router.get("/route")
+def driving_route(
+    from_lat: float = Query(ge=-90, le=90),
+    from_lng: float = Query(ge=-180, le=180),
+    to_lat: float = Query(ge=-90, le=90),
+    to_lng: float = Query(ge=-180, le=180),
+    _: User = Depends(get_current_user),
+):
+    """Ruta en carro entre dos puntos (servidor público de OSRM, sobre OpenStreetMap)."""
+    try:
+        resp = httpx.get(
+            f"{OSRM_URL}/{from_lng},{from_lat};{to_lng},{to_lat}",
+            params={"overview": "full", "geometries": "geojson"},
+            headers={"User-Agent": config.GEOCODER_USER_AGENT},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        routes = resp.json().get("routes") or []
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(status_code=502, detail="No pudimos calcular la ruta en este momento.")
+    if not routes:
+        raise HTTPException(status_code=404, detail="No encontramos una ruta entre esos dos puntos.")
+    route = routes[0]
+    return ok(
+        "OK",
+        distance_m=route["distance"],
+        duration_s=route["duration"],
+        # GeoJSON entrega [lng, lat]; la app usa {latitude, longitude}.
+        points=[{"latitude": lat, "longitude": lng} for lng, lat in route["geometry"]["coordinates"]],
+    )

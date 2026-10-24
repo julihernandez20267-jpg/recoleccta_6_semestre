@@ -53,6 +53,20 @@ export async function describePlace(latitude: number, longitude: number): Promis
   }
 }
 
+// Solo la posición del GPS (sin traducirla a dirección), por ejemplo para trazar una ruta.
+export async function getCurrentCoords(): Promise<
+  { ok: true; coords: { latitude: number; longitude: number } } | { ok: false; reason: 'denied' | 'unavailable' }
+> {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== 'granted') return { ok: false, reason: 'denied' };
+  try {
+    const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    return { ok: true, coords: { latitude: coords.latitude, longitude: coords.longitude } };
+  } catch {
+    return { ok: false, reason: 'unavailable' };
+  }
+}
+
 // Pide permiso, toma la posición del GPS y la describe como dirección.
 export async function getCurrentPlace(): Promise<LocationResult> {
   const { status } = await Location.requestForegroundPermissionsAsync();

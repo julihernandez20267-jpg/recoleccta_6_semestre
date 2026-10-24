@@ -24,6 +24,17 @@ def list_requests(user: User = Depends(get_current_user), db: Session = Depends(
     return ok("OK", requests=[r.to_dict() for r in db.scalars(query).all()])
 
 
+@router.get("/{request_id}")
+def get_request(request_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Detalle de una solicitud: la ve el administrador o el comercio que la pidió."""
+    request = db.get(ContainerRequest, request_id)
+    if request is None:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada.")
+    if user.role != "admin" and request.business_id != user.id:
+        raise HTTPException(status_code=403, detail="No tienes permisos para ver esta solicitud.")
+    return ok("OK", request=request.to_dict())
+
+
 @router.post("")
 def create_request(body: ContainerRequestIn, user: User = Depends(require_business), db: Session = Depends(get_db)):
     oil_type = body.oil_type.strip().lower()
@@ -34,6 +45,8 @@ def create_request(body: ContainerRequestIn, user: User = Depends(require_busine
         oil_type=oil_type,
         quantity=body.quantity,
         address=body.address.strip(),
+        latitude=body.latitude,
+        longitude=body.longitude,
         notes=(body.notes or "").strip() or None,
         status="pending",
     )

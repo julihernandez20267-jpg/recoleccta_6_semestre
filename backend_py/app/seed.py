@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 from sqlalchemy import inspect, select, text
+from sqlalchemy.schema import CreateColumn
 from sqlalchemy.orm import Session
 
 from app import config
@@ -142,18 +143,31 @@ def seed_demo(db: Session) -> None:
 
 
 def retire_incompatible_tables() -> None:
-    """Si la base ya tenía tablas de una versión anterior con otras columnas, las renombra
-    (<tabla>_legacy_<fecha>) en vez de borrarlas, para que create_all cree las nuevas."""
+    """Pone las tablas existentes al día con los modelos sin perder datos.
+
+    - Si solo faltan columnas opcionales (nullable), se agregan con ALTER TABLE ... ADD COLUMN.
+    - Si la tabla es de una versión anterior muy distinta, se renombra (<tabla>_legacy_<fecha>)
+      en vez de borrarla, para que create_all cree la nueva.
+    """
     insp = inspect(engine)
     model_tables = {t.name: t for t in Base.metadata.sorted_tables}
     present = [name for name in model_tables if name in set(insp.get_table_names())]
     refs = {name: {fk["referred_table"] for fk in insp.get_foreign_keys(name)} for name in present}
+    quote = engine.dialect.identifier_preparer.quote
 
     reasons = {}
     for name in present:
         current = {c["name"] for c in insp.get_columns(name)}
-        missing = {c.name for c in model_tables[name].columns} - current
+        missing = [c for c in model_tables[name].columns if c.name not in current]
+        if missing and all(c.nullable and not c.primary_key for c in missing):
+            with engine.begin() as conn:
+                for column in missing:
+                    ddl = CreateColumn(column).compile(dialect=engine.dialect)
+                    log.warning("Tabla '%s': se agrega la columna nueva '%s'.", name, column.name)
+                    conn.execute(text(f"ALTER TABLE {quote(name)} ADD COLUMN {ddl}"))
+            continue
         if missing:
+            missing = {c.name for c in missing}
             reasons[name] = "faltan " + ", ".join(sorted(missing))
         elif refs[name] - set(model_tables):
             reasons[name] = "apunta a tablas viejas"
@@ -167,7 +181,6 @@ def retire_incompatible_tables() -> None:
                 changed = True
 
     stamp = datetime.now().strftime("%Y%m%d%H%M")
-    quote = engine.dialect.identifier_preparer.quote
     with engine.begin() as conn:
         for name, reason in reasons.items():
             legacy = f"{name}_legacy_{stamp}"

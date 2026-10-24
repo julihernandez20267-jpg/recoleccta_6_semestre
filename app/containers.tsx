@@ -9,7 +9,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -90,11 +89,6 @@ export default function ContainersScreen() {
     } finally {
       setUpdatingId(null);
     }
-  }
-
-  async function callBusiness(phone: string) {
-    const url = `tel:${phone.replace(/\s+/g, '')}`;
-    if (await Linking.canOpenURL(url)) await Linking.openURL(url);
   }
 
   return (
@@ -195,12 +189,13 @@ export default function ContainersScreen() {
                   ) : null}
 
                   <View style={styles.actionsRow}>
-                    {request.business_phone ? (
-                      <TouchableOpacity style={styles.ghostButton} onPress={() => callBusiness(request.business_phone)}>
-                        <MaterialCommunityIcons name="phone-outline" size={16} color={Colors.primary} />
-                        <Text style={styles.ghostButtonText}>Llamar</Text>
-                      </TouchableOpacity>
-                    ) : null}
+                    <TouchableOpacity
+                      style={styles.ghostButton}
+                      onPress={() => router.push({ pathname: '/container-detail/[id]', params: { id: String(request.id) } })}
+                    >
+                      <MaterialCommunityIcons name="map-marker-path" size={16} color={Colors.primary} />
+                      <Text style={styles.ghostButtonText}>Ver ruta y datos</Text>
+                    </TouchableOpacity>
                     {step ? (
                       <TouchableOpacity
                         style={styles.primaryButton}
@@ -321,6 +316,7 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'flex-end',
     gap: 10,
     marginTop: 6,

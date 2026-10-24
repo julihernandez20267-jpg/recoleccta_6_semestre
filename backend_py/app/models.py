@@ -210,6 +210,8 @@ class ContainerRequest(Base):
     oil_type: Mapped[str] = mapped_column(String(20), nullable=False)  # cooking | motor
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     address: Mapped[str] = mapped_column(String(255), nullable=False)
+    latitude: Mapped[float | None] = mapped_column(Float)  # punto de entrega, para trazar la ruta
+    longitude: Mapped[float | None] = mapped_column(Float)
     notes: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)  # pending | in-progress | delivered
     handled_by_name: Mapped[str | None] = mapped_column(String(150))
@@ -226,9 +228,13 @@ class ContainerRequest(Base):
             "business_name": business.business_name if business else None,
             "business_type": business.business_type if business else None,
             "business_phone": business.phone if business else None,
+            "contact_name": self.requester.display_name if self.requester is not None else None,
+            "contact_email": self.requester.email if self.requester is not None else None,
             "oil_type": self.oil_type,
             "quantity": self.quantity,
             "address": self.address,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
             "notes": self.notes,
             "status": self.status,
             "handled_by_name": self.handled_by_name,

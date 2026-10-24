@@ -94,9 +94,16 @@ export async function createContainerRequest(data: {
   oil_type: 'cooking' | 'motor';
   quantity: number;
   address: string;
+  latitude?: number;
+  longitude?: number;
   notes?: string;
 }) {
   const res = await apiClient.post('/containers', data);
+  return res.data;
+}
+
+export async function getContainerRequest(requestId: number) {
+  const res = await apiClient.get(`/containers/${requestId}`);
   return res.data;
 }
 
@@ -111,5 +118,19 @@ export async function reverseGeocode(latitude: number, longitude: number) {
   return res.data as {
     success: boolean;
     data?: { address?: string | null; neighborhood?: string | null; city?: string | null };
+  };
+}
+
+// Ruta en carro entre dos puntos (OSRM, a través del backend)
+export async function getDrivingRoute(
+  from: { latitude: number; longitude: number },
+  to: { latitude: number; longitude: number },
+) {
+  const res = await apiClient.get('/geo/route', {
+    params: { from_lat: from.latitude, from_lng: from.longitude, to_lat: to.latitude, to_lng: to.longitude },
+  });
+  return res.data as {
+    success: boolean;
+    data?: { distance_m: number; duration_s: number; points: { latitude: number; longitude: number }[] };
   };
 }

@@ -68,7 +68,14 @@ export default function ContainerRequestScreen() {
     setSending(true);
     setFailed(false);
     try {
-      await createContainerRequest({ oil_type: oilType, quantity, address: address.trim(), notes: notes.trim() || undefined });
+      await createContainerRequest({
+        oil_type: oilType,
+        quantity,
+        address: address.trim(),
+        latitude: point?.latitude,
+        longitude: point?.longitude,
+        notes: notes.trim() || undefined,
+      });
       Alert.alert('¡Solicitud enviada!', 'Te avisaremos cuando el bidón vaya en camino.', [
         { text: 'Listo', onPress: () => router.back() },
       ]);

@@ -138,6 +138,7 @@ function RootLayoutContent() {
           <Stack.Screen name="business-panel" options={{ headerShown: false }} />
           <Stack.Screen name="container-request" options={{ headerShown: false }} />
           <Stack.Screen name="containers" options={{ headerShown: false }} />
+          <Stack.Screen name="container-detail/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="admin-guardians" options={{ headerShown: false }} />
           <Stack.Screen name="admin-routes" options={{ headerShown: false }} />
           <Stack.Screen name="admin-create-guardian" options={{ headerShown: false }} />
