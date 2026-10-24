@@ -135,20 +135,34 @@ def retire_incompatible_tables() -> None:
     """Si la base ya tenía tablas de una versión anterior con otras columnas, las renombra
     (<tabla>_legacy_<fecha>) en vez de borrarlas, para que create_all cree las nuevas."""
     insp = inspect(engine)
-    existing = set(insp.get_table_names())
+    model_tables = {t.name: t for t in Base.metadata.sorted_tables}
+    present = [name for name in model_tables if name in set(insp.get_table_names())]
+    refs = {name: {fk["referred_table"] for fk in insp.get_foreign_keys(name)} for name in present}
+
+    reasons = {}
+    for name in present:
+        current = {c["name"] for c in insp.get_columns(name)}
+        missing = {c.name for c in model_tables[name].columns} - current
+        if missing:
+            reasons[name] = "faltan " + ", ".join(sorted(missing))
+        elif refs[name] - set(model_tables):
+            reasons[name] = "apunta a tablas viejas"
+    # Las tablas que apuntan (llave foránea) a una tabla apartada también se apartan.
+    changed = True
+    while changed:
+        changed = False
+        for name in present:
+            if name not in reasons and refs[name] & set(reasons):
+                reasons[name] = "depende de tablas viejas"
+                changed = True
+
     stamp = datetime.now().strftime("%Y%m%d%H%M")
     quote = engine.dialect.identifier_preparer.quote
     with engine.begin() as conn:
-        for table in Base.metadata.sorted_tables:
-            if table.name not in existing:
-                continue
-            current = {c["name"] for c in insp.get_columns(table.name)}
-            missing = {c.name for c in table.columns} - current
-            if missing:
-                legacy = f"{table.name}_legacy_{stamp}"
-                log.warning("Tabla '%s' de una versión anterior (faltan %s): se renombra a '%s'.",
-                            table.name, ", ".join(sorted(missing)), legacy)
-                conn.execute(text(f"ALTER TABLE {quote(table.name)} RENAME TO {quote(legacy)}"))
+        for name, reason in reasons.items():
+            legacy = f"{name}_legacy_{stamp}"
+            log.warning("Tabla '%s' de una versión anterior (%s): se renombra a '%s'.", name, reason, legacy)
+            conn.execute(text(f"ALTER TABLE {quote(name)} RENAME TO {quote(legacy)}"))
 
 
 def init_db(demo: bool = False) -> None:
