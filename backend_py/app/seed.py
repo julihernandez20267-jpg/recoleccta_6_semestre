@@ -1,8 +1,9 @@
 """Datos base: roles, permisos (RBAC) y el administrador inicial. Es seguro ejecutarlo varias veces."""
 import json
 import logging
+from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
 from app import config
@@ -130,7 +131,28 @@ def seed_demo(db: Session) -> None:
     db.commit()
 
 
+def retire_incompatible_tables() -> None:
+    """Si la base ya tenía tablas de una versión anterior con otras columnas, las renombra
+    (<tabla>_legacy_<fecha>) en vez de borrarlas, para que create_all cree las nuevas."""
+    insp = inspect(engine)
+    existing = set(insp.get_table_names())
+    stamp = datetime.now().strftime("%Y%m%d%H%M")
+    quote = engine.dialect.identifier_preparer.quote
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existing:
+                continue
+            current = {c["name"] for c in insp.get_columns(table.name)}
+            missing = {c.name for c in table.columns} - current
+            if missing:
+                legacy = f"{table.name}_legacy_{stamp}"
+                log.warning("Tabla '%s' de una versión anterior (faltan %s): se renombra a '%s'.",
+                            table.name, ", ".join(sorted(missing)), legacy)
+                conn.execute(text(f"ALTER TABLE {quote(table.name)} RENAME TO {quote(legacy)}"))
+
+
 def init_db(demo: bool = False) -> None:
+    retire_incompatible_tables()
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
         seed_base(db)
