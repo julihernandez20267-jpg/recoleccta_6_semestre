@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { getGuardianRoute, getReports } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -78,7 +79,7 @@ export default function GuardianPanelScreen() {
       }
     } catch (error) {
       setApiFailed(true);
-      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -107,16 +108,7 @@ export default function GuardianPanelScreen() {
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       ) : apiFailed ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={64} color={Colors.error} />
-          <Text style={{ fontSize: 16, color: Colors.onSurface, fontWeight: '700', marginTop: 12 }}>Falla de API</Text>
-          <Text style={{ fontSize: 13, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 8, marginBottom: 20 }}>
-            El servidor no responde. No se puede cargar tu panel de guardián.
-          </Text>
-          <TouchableOpacity style={{ backgroundColor: Colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }} onPress={loadData}>
-            <Text style={{ color: Colors.onPrimary, fontWeight: '700' }}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+        <ConnectionError onRetry={() => loadData()} />
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.heroHeader}>

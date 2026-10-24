@@ -53,7 +53,7 @@ export default function AdminCreateGuardianScreen() {
       const isNetworkError = !error.response || error.response.status >= 500;
       if (isNetworkError) {
         setApiFailed(true);
-        Alert.alert('Error de API', 'El servidor no responde. No se puede guardar en este momento.');
+        Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       } else {
         Alert.alert('Error', error.message || 'No se pudo crear el guardián.');
       }

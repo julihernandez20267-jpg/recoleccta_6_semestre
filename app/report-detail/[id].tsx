@@ -1,9 +1,11 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
+import { formatDateTime, normalizeStatus, STATUS_META } from '../../constants/Reports';
 import { useAuth } from '../../context/AuthContext';
 import { getReports, updateReportStatus } from '@/services/api';
 
@@ -36,7 +38,7 @@ export default function ReportDetailScreen() {
       }
     } catch (e) {
       setApiFailed(true);
-      Alert.alert('Falla de Conexión', 'No se pudo conectar con el servidor.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -49,7 +51,7 @@ export default function ReportDetailScreen() {
       const guardianName = user?.displayName || 'Guardián';
       const res = await updateReportStatus(parsedId, newStatus, guardianName);
       if (res.success) {
-        Alert.alert('Éxito', `El reporte ha sido cambiado a: ${newStatus}`);
+        Alert.alert('Reporte actualizado', `El reporte quedó en estado "${STATUS_META[normalizeStatus(newStatus)].label}".`);
         loadReport();
       } else {
         throw new Error(res.message || 'Error al actualizar el reporte.');
@@ -58,7 +60,7 @@ export default function ReportDetailScreen() {
       const isNetworkError = !error.response || error.response.status >= 500;
       if (isNetworkError) {
         setApiFailed(true);
-        Alert.alert('Falla de API', 'El servidor no responde. No se puede realizar la acción.');
+        Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       } else {
         Alert.alert('Error', error.message || 'No se pudo actualizar el estado.');
       }
@@ -91,16 +93,8 @@ export default function ReportDetailScreen() {
     );
   }
 
-  const statusColorMap: Record<string, { bg: string; text: string }> = {
-    completado: { bg: '#d8f3dc', text: '#1f6f3a' },
-    completed: { bg: '#d8f3dc', text: '#1f6f3a' },
-    'en proceso': { bg: '#d6f5d6', text: '#25743a' },
-    'in-progress': { bg: '#d6f5d6', text: '#25743a' },
-    pendiente: { bg: '#fff2c8', text: '#7a5d00' },
-    pending: { bg: '#fff2c8', text: '#7a5d00' },
-  };
-
-  const chipColors = statusColorMap[report.status] ?? statusColorMap.pending;
+  const status = normalizeStatus(report.status);
+  const statusMeta = STATUS_META[status];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}> 
@@ -114,10 +108,10 @@ export default function ReportDetailScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.mainCard}>
           <View style={styles.topRow}>
-            <View style={[styles.chip, { backgroundColor: chipColors.bg }]}> 
-              <MaterialCommunityIcons name="check-decagram" size={12} color={chipColors.text} />
-              <Text style={[styles.chipText, { color: chipColors.text }]}> 
-                {(report.status || 'pendiente').toUpperCase()}
+            <View style={[styles.chip, { backgroundColor: statusMeta.bg }]}>
+              <MaterialCommunityIcons name={statusMeta.icon} size={12} color={statusMeta.text} />
+              <Text style={[styles.chipText, { color: statusMeta.text }]}>
+                {statusMeta.label.toUpperCase()}
               </Text>
             </View>
             <Text style={styles.reportId}>Reporte #{report.id.toString().padStart(4, '0')}</Text>
@@ -128,7 +122,7 @@ export default function ReportDetailScreen() {
 
           <View style={styles.dataBox}>
             <Text style={styles.dataLabel}>FECHA</Text>
-            <Text style={styles.dataValue}>{report.created_at ? new Date(report.created_at).toLocaleDateString() : 'Sin fecha'}</Text>
+            <Text style={styles.dataValue}>{formatDateTime(report.created_at)}</Text>
           </View>
 
           <View style={styles.dataBox}>
@@ -164,7 +158,7 @@ export default function ReportDetailScreen() {
             </View>
           </View>
 
-          {user?.role === 'guardian' && (report.status === 'pending' || report.status === 'pendiente') && !apiFailed && (
+          {user?.role === 'guardian' && status === 'pending' && !apiFailed && (
             <TouchableOpacity
               style={styles.takeButton}
               onPress={() => handleUpdateStatus('en proceso')}
@@ -175,7 +169,7 @@ export default function ReportDetailScreen() {
             </TouchableOpacity>
           )}
 
-          {user?.role === 'guardian' && (report.status === 'in-progress' || report.status === 'en proceso') && !apiFailed && (
+          {user?.role === 'guardian' && status === 'in-progress' && !apiFailed && (
             <TouchableOpacity
               style={styles.completeButton}
               onPress={() => handleUpdateStatus('completado')}
@@ -187,11 +181,11 @@ export default function ReportDetailScreen() {
           )}
 
           {apiFailed && (
-            <View style={{ marginVertical: 10, padding: 12, backgroundColor: '#fde8e8', borderRadius: 10, borderWidth: 1, borderColor: '#f8b4b4' }}>
-              <Text style={{ color: Colors.error, fontSize: 12, fontWeight: '700', textAlign: 'center' }}>
-                Acciones deshabilitadas debido a una falla en la API.
-              </Text>
-            </View>
+            <ConnectionError
+              compact
+              message="Las acciones sobre el reporte se activarán cuando vuelva la conexión."
+              onRetry={() => loadReport()}
+            />
           )}
         </View>
       </ScrollView>

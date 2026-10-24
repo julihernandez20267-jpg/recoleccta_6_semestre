@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { completeGuardianRoute, getGuardianRoute, getReports, updateReportStatus } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -6,6 +7,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { DEFAULT_REGION } from '../constants/Map';
 import { useAuth } from '../context/AuthContext';
 
 export default function GuardianMapScreen() {
@@ -80,7 +82,7 @@ export default function GuardianMapScreen() {
       }
     } catch (e) {
       setApiFailed(true);
-      Alert.alert('Falla de Conexión', 'No se pudo conectar con el servidor.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -129,8 +131,8 @@ export default function GuardianMapScreen() {
     setActiveWaypointIndex((prev) => (prev + 1) % activeRoute.coordinates.length);
   };
 
-  const initialLat = activeRoute?.coordinates?.[0]?.latitude || 4.6272;
-  const initialLng = activeRoute?.coordinates?.[0]?.longitude || -74.0732;
+  const initialLat = activeRoute?.coordinates?.[0]?.latitude || DEFAULT_REGION.latitude;
+  const initialLng = activeRoute?.coordinates?.[0]?.longitude || DEFAULT_REGION.longitude;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}> 
@@ -221,16 +223,11 @@ export default function GuardianMapScreen() {
 
           <View style={styles.routeInfoCard}>
             {apiFailed ? (
-              <View style={{ gap: 6 }}>
-                <View style={[styles.routeBadge, { backgroundColor: '#fde8e8' }]}>
-                  <Text style={[styles.routeBadgeText, { color: Colors.error }]}>FALLA DE API</Text>
-                </View>
-                <Text style={styles.routeTitle}>Servidor Desconectado</Text>
-                <Text style={styles.routeSubtitle}>Las acciones de rutas y reportes se encuentran deshabilitadas.</Text>
-                <TouchableOpacity style={{ backgroundColor: Colors.primary, paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginTop: 8 }} onPress={loadData}>
-                  <Text style={{ color: Colors.onPrimary, fontWeight: '700' }}>Reintentar Conexión</Text>
-                </TouchableOpacity>
-              </View>
+              <ConnectionError
+                compact
+                message="Las acciones de rutas y reportes se activarán cuando vuelva la conexión."
+                onRetry={() => loadData()}
+              />
             ) : assignedRoutes.length === 0 ? (
               <>
                 <View style={styles.routeBadge}>

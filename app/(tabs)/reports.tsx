@@ -1,10 +1,12 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Colors } from '../../constants/Colors';
+import { formatDateTime } from '../../constants/Reports';
 import { getReports } from '@/services/api';
 
 type FilterKey = 'all' | 'completed' | 'in-progress' | 'pending';
@@ -48,18 +50,24 @@ export default function ReportsTabScreen() {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiFailed, setApiFailed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const loadedOnce = useRef(false);
 
-  useEffect(() => {
-    loadReports();
-  }, []);
+  // Recarga al volver a la pantalla, para que aparezcan los reportes recién creados.
+  useFocusEffect(
+    useCallback(() => {
+      loadReports(loadedOnce.current);
+    }, []),
+  );
 
-  async function loadReports() {
-    setLoading(true);
+  async function loadReports(silent = false) {
+    if (!silent) setLoading(true);
     setApiFailed(false);
     try {
       const res = await getReports();
       if (res.success && res.data?.reports) {
         setReports(res.data.reports);
+        loadedOnce.current = true;
       } else {
         throw new Error('Error al obtener reportes');
       }
@@ -67,7 +75,13 @@ export default function ReportsTabScreen() {
       setApiFailed(true);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }
+
+  function handleRefresh() {
+    setRefreshing(true);
+    loadReports(true);
   }
 
   const filteredReports = useMemo(() => {
@@ -112,22 +126,14 @@ export default function ReportsTabScreen() {
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       ) : apiFailed ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={64} color={Colors.error} />
-          <Text style={{ fontSize: 16, color: Colors.onSurface, fontWeight: '700', marginTop: 12 }}>Falla de API</Text>
-          <Text style={{ fontSize: 13, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 8, marginBottom: 20 }}>
-            El servidor no responde. No es posible visualizar el historial de reportes.
-          </Text>
-          <TouchableOpacity style={{ backgroundColor: Colors.primary, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10 }} onPress={loadReports}>
-            <Text style={{ color: Colors.onPrimary, fontWeight: '700' }}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+        <ConnectionError onRetry={() => loadReports()} />
       ) : (
         <FlatList
           data={filteredReports}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.primary]} tintColor={Colors.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
               <Text style={styles.emptyTitle}>No hay reportes en este estado.</Text>
@@ -147,7 +153,7 @@ export default function ReportsTabScreen() {
                     {getStatusChipStyle(item.status).label}
                   </Text>
                 </View>
-                <Text style={styles.dateText}>{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Sin fecha'}</Text>
+                <Text style={styles.dateText}>{formatDateTime(item.created_at)}</Text>
               </View>
 
               <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>

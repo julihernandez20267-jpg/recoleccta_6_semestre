@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -154,13 +155,7 @@ export default function GuardianProfileScreen() {
         </View>
 
         {apiFailed && (
-          <View style={styles.errorBanner}>
-            <MaterialCommunityIcons name="alert-circle-outline" size={20} color={Colors.error} />
-            <Text style={styles.errorBannerText}>Falla de API. Estadísticas fuera de línea.</Text>
-            <TouchableOpacity onPress={loadReports} style={styles.retryBtn}>
-              <Text style={styles.retryText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ConnectionError compact message="Tus estadísticas se actualizarán cuando vuelva la conexión." onRetry={() => loadReports()} />
         )}
 
         <View style={styles.metricsRow}>

@@ -2,13 +2,15 @@ import { useAuth } from '@/context/AuthContext';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Colors } from '../../constants/Colors';
+import { normalizeStatus } from '../../constants/Reports';
 import { Typography } from '../../constants/Typography';
+import { getReports } from '@/services/api';
 
 function getGreeting(email?: string, displayName?: string) {
   const cleanDisplayName = displayName?.trim();
@@ -34,6 +36,30 @@ export default function UserDashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const [stats, setStats] = useState<{ total: number; attended: number } | null>(null);
+
+  // Se recalcula cada vez que la pantalla vuelve a estar visible (p. ej. después de crear un reporte).
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getReports()
+        .then((res) => {
+          const mine = (res.data?.reports || []).filter((r: any) => r.created_by === user?.uid);
+          if (active) {
+            setStats({
+              total: mine.length,
+              attended: mine.filter((r: any) => normalizeStatus(r.status) === 'completed').length,
+            });
+          }
+        })
+        .catch(() => {
+          if (active) setStats(null);
+        });
+      return () => {
+        active = false;
+      };
+    }, [user?.uid]),
+  );
 
   return (
     <View style={styles.container}>
@@ -115,7 +141,7 @@ export default function UserDashboardScreen() {
           <View style={styles.statCard}>
             <View>
               <Text style={[Typography.labelLg, styles.statLabel]}>TUS REPORTES</Text>
-              <Text style={[Typography.displayLg, styles.statValuePrimary]}>3</Text>
+              <Text style={[Typography.displayLg, styles.statValuePrimary]}>{stats ? stats.total : '–'}</Text>
             </View>
             <View style={styles.statIconBox}>
               <MaterialIcons name="insert-chart" size={22} color={Colors.primary} />
@@ -124,8 +150,8 @@ export default function UserDashboardScreen() {
 
           <View style={styles.statCard}>
             <View>
-              <Text style={[Typography.labelLg, styles.statLabel]}>PUNTOS ATENDIDOS</Text>
-              <Text style={[Typography.displayLg, styles.statValueSecondary]}>2</Text>
+              <Text style={[Typography.labelLg, styles.statLabel]}>YA ATENDIDOS</Text>
+              <Text style={[Typography.displayLg, styles.statValueSecondary]}>{stats ? stats.attended : '–'}</Text>
             </View>
             <View style={styles.statIconBox}>
               <MaterialIcons name="check-circle" size={22} color={Colors.secondary} />

@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -6,6 +7,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, Touc
 import MapView, { LatLng, MapPressEvent, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { DEFAULT_REGION } from '../constants/Map';
 import { getRoutes, createRoute, getRouteAssignments, assignRoute, getUsers } from '@/services/api';
 
 export default function AdminRoutesScreen() {
@@ -64,7 +66,7 @@ export default function AdminRoutesScreen() {
       }
     } catch (error) {
       setApiFailed(true);
-      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor para obtener rutas o guardianes.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -114,7 +116,7 @@ export default function AdminRoutesScreen() {
 
   const handleSaveRoute = async () => {
     if (apiFailed) {
-      Alert.alert('Error', 'Acción no disponible debido a una falla en la API.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       return;
     }
     if (!routeName.trim() || !routeZone.trim() || draftPoints.length < 2) {
@@ -148,7 +150,7 @@ export default function AdminRoutesScreen() {
 
   const handleAssignRoute = async (guardianId: number, guardianName: string) => {
     if (apiFailed) {
-      Alert.alert('Error', 'Acción no disponible debido a una falla en la API.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       return;
     }
     if (!selectedRoute) {
@@ -209,13 +211,7 @@ export default function AdminRoutesScreen() {
         {loading && savedRoutes.length === 0 ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: 40 }} />
         ) : apiFailed ? (
-          <View style={styles.errorContainer}>
-            <MaterialCommunityIcons name="alert-circle" size={32} color={Colors.error} />
-            <Text style={styles.errorText}>No se pueden administrar rutas por una falla en la API.</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ConnectionError compact onRetry={() => loadData()} />
         ) : (
           <>
             {activeSection === 'create' && (
@@ -242,12 +238,7 @@ export default function AdminRoutesScreen() {
                   <MapView
                     style={styles.map}
                     provider={PROVIDER_GOOGLE}
-                    initialRegion={{
-                      latitude: 4.6272,
-                      longitude: -74.0732,
-                      latitudeDelta: 0.03,
-                      longitudeDelta: 0.03,
-                    }}
+                    initialRegion={DEFAULT_REGION}
                     onPress={handleMapPress}
                   >
                     {mapPoints.length > 1 ? <Polyline coordinates={mapPoints} strokeColor={Colors.primary} strokeWidth={4} /> : null}

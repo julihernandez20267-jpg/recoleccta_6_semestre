@@ -4,9 +4,9 @@
     "slug": "frontend_recoleccta",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/9126d546-c1a7-4213-8269-36fe0c237397.jpg",
+    "icon": "./assets/images/icon.png",
     "scheme": "frontendrecoleccta",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
@@ -14,10 +14,8 @@
     "android": {
       "package": "com.recoleccta.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -41,10 +39,7 @@
           "image": "./assets/images/9126d546-c1a7-4213-8269-36fe0c237397.jpg",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
       ],
       "expo-secure-store"

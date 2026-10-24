@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -174,7 +175,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <View style={styles.supportWrap}>
-          <Text style={styles.versionText}>Recoleccta App v2.4.0</Text>
+          <Text style={styles.versionText}>Recoleccta v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
           <TouchableOpacity activeOpacity={0.8} onPress={handleSupport}>
             <Text style={styles.supportText}>¿Necesitas ayuda? Contactar soporte</Text>
           </TouchableOpacity>

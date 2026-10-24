@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -8,6 +9,7 @@ import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReportLocationMap } from '../components/ReportLocationMap';
 import { Colors } from '../constants/Colors';
+import { DEFAULT_REGION } from '../constants/Map';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
 import { createReport, getReports } from '@/services/api';
@@ -37,19 +39,11 @@ export default function ReportFormScreen() {
       setApiFailed(false);
     } catch (e) {
       setApiFailed(true);
-      Alert.alert('Falla de Conexión', 'No se pudo conectar con el servidor de reportes.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     }
   }
 
-  const initialRegion = useMemo(
-    () => ({
-      latitude: 4.6097,
-      longitude: -74.0817,
-      latitudeDelta: 0.02,
-      longitudeDelta: 0.02,
-    }),
-    [],
-  );
+  const initialRegion = useMemo(() => ({ ...DEFAULT_REGION, latitudeDelta: 0.02, longitudeDelta: 0.02 }), []);
 
   const wasteTypes = [
     { id: 'plastic', label: 'Plástico', icon: 'bottle-soda' },
@@ -79,7 +73,7 @@ export default function ReportFormScreen() {
 
   const handleSubmitReport = async () => {
     if (apiFailed) {
-      Alert.alert('Error', 'No es posible enviar reportes por una falla en la API.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       return;
     }
     if (canChooseLocationOnMap && !selectedCoordinate) {
@@ -131,7 +125,7 @@ export default function ReportFormScreen() {
       const isNetworkError = !error.response || error.response.status >= 500;
       if (isNetworkError) {
         setApiFailed(true);
-        Alert.alert('Error de API', 'El servidor no responde. No se puede enviar el reporte.');
+        Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       } else {
         Alert.alert('Error', error.message || 'No se pudo enviar el reporte.');
       }
@@ -336,16 +330,12 @@ export default function ReportFormScreen() {
 
       {/* Submit Button */}
       {apiFailed ? (
-        <View style={{ marginVertical: 20, padding: 16, backgroundColor: '#fde8e8', borderRadius: 12, borderWidth: 1, borderColor: '#f8b4b4' }}>
-          <Text style={{ color: Colors.error, fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
-            API del servidor fuera de línea. No se puede enviar el reporte.
-          </Text>
-          <TouchableOpacity 
-            style={{ marginTop: 10, alignSelf: 'center', backgroundColor: Colors.error, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }} 
-            onPress={checkApi}
-          >
-            <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 12 }}>Reintentar Conexión</Text>
-          </TouchableOpacity>
+        <View style={{ marginTop: 32, marginBottom: 40 }}>
+          <ConnectionError
+            compact
+            message="Para enviar el reporte necesitamos conexión con el servidor. Tu información no se ha perdido."
+            onRetry={checkApi}
+          />
         </View>
       ) : (
         <GradientButton

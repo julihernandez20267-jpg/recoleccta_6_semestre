@@ -8,7 +8,6 @@ import 'react-native-reanimated';
 import { Colors } from '@/constants/Colors';
 import { Typography } from '@/constants/Typography';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { GuardianRoutesProvider } from '@/context/GuardianRoutesContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSessionTimeout } from '@/hooks/use-session-timeout';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -128,7 +127,6 @@ function RootLayoutContent() {
           <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
           <Stack.Screen name="report-form" options={{ headerShown: false }} />
           <Stack.Screen name="report-detail/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
       </View>
       <StatusBar style="auto" />
@@ -211,9 +209,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <GuardianRoutesProvider>
-          <RootLayoutContent />
-        </GuardianRoutesProvider>
+        <RootLayoutContent />
       </AuthProvider>
     </SafeAreaProvider>
   );

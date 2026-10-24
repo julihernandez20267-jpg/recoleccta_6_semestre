@@ -5,19 +5,32 @@ import { useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { SUPPORT_EMAIL, SUPPORT_HOURS, SUPPORT_PHONE } from '../constants/Support';
 
 const FAQ_ITEMS = [
   {
-    question: '¿Cómo programar una recolección especial?',
-    answer: 'Entra a Reportes y crea un nuevo reporte con ubicación y evidencia. Si es urgente, usa la opción Llámanos.',
+    question: '¿Cómo reporto un punto lleno?',
+    answer: 'En Inicio toca "Reportar punto lleno", marca la ubicación en el mapa, elige el tipo de residuo y, si quieres, agrega una foto. Luego toca "Enviar reporte".',
   },
   {
-    question: '¿Qué materiales son reciclables?',
-    answer: 'Puedes reportar plástico, papel, vidrio y orgánico. En cada reporte selecciona el tipo para mejorar la ruta.',
+    question: '¿Qué significa el estado de mi reporte?',
+    answer: 'Pendiente: aún nadie lo ha tomado. En proceso: un guardián va en camino o lo está atendiendo. Atendido: el punto ya fue recolectado.',
   },
   {
-    question: 'Mi recolección no ha pasado, ¿qué hago?',
-    answer: 'Revisa el estado en Historial de reportes. Si sigue pendiente, escríbenos al correo de soporte.',
+    question: '¿Qué tipos de residuos puedo reportar?',
+    answer: 'Plástico, papel, vidrio y orgánico. Elegir el tipo correcto ayuda a planear mejor las rutas de recolección.',
+  },
+  {
+    question: '¿Quiénes son los guardianes?',
+    answer: 'Son el personal de recolección. Reciben rutas del administrador y atienden los reportes que hacen los ciudadanos.',
+  },
+  {
+    question: 'La app tarda en cargar, ¿es normal?',
+    answer: 'Si nadie la ha usado en un rato, el servidor puede tardar hasta un minuto en despertar. Después de eso responde con normalidad.',
+  },
+  {
+    question: 'Olvidé mi contraseña, ¿qué hago?',
+    answer: 'En la pantalla de inicio de sesión toca "Olvidé mi contraseña". Te enviaremos un código a tu correo para crear una nueva.',
   },
 ];
 
@@ -27,14 +40,14 @@ export default function SupportScreen() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   async function openPhone() {
-    const url = 'tel:+34900123456';
+    const url = `tel:${SUPPORT_PHONE.replace(/\s+/g, '')}`;
     if (await Linking.canOpenURL(url)) {
       await Linking.openURL(url);
     }
   }
 
   async function openEmail() {
-    const url = 'mailto:hola@recoleccta.eco?subject=Soporte%20Recoleccta';
+    const url = `mailto:${SUPPORT_EMAIL}?subject=Soporte%20Recoleccta`;
     if (await Linking.canOpenURL(url)) {
       await Linking.openURL(url);
     }
@@ -62,6 +75,7 @@ export default function SupportScreen() {
         </View>
 
         <View style={styles.contactGrid}>
+          {SUPPORT_PHONE ? (
           <TouchableOpacity style={styles.contactCard} activeOpacity={0.92} onPress={() => void openPhone()}>
             <View style={styles.contactTopRow}>
               <View style={styles.contactIconWrap}>
@@ -69,11 +83,13 @@ export default function SupportScreen() {
               </View>
               <MaterialCommunityIcons name="arrow-top-right" size={24} color={Colors.onSurfaceVariant} />
             </View>
-            <Text style={styles.contactTitle}>Llamanos</Text>
-            <Text style={styles.contactSubtitle}>Atencion de lunes a viernes de 8:00 a 18:00.</Text>
-            <Text style={styles.contactValue}>+34 900 123 456</Text>
+            <Text style={styles.contactTitle}>Llámanos</Text>
+            <Text style={styles.contactSubtitle}>{SUPPORT_HOURS}</Text>
+            <Text style={styles.contactValue}>{SUPPORT_PHONE}</Text>
           </TouchableOpacity>
+          ) : null}
 
+          {SUPPORT_EMAIL ? (
           <TouchableOpacity style={styles.contactCard} activeOpacity={0.92} onPress={() => void openEmail()}>
             <View style={styles.contactTopRow}>
               <View style={styles.contactIconWrap}>
@@ -81,20 +97,16 @@ export default function SupportScreen() {
               </View>
               <MaterialCommunityIcons name="arrow-top-right" size={24} color={Colors.onSurfaceVariant} />
             </View>
-            <Text style={styles.contactTitle}>Escribenos</Text>
-            <Text style={styles.contactSubtitle}>Responderemos a tu solicitud en menos de 24 horas habiles.</Text>
-            <Text style={styles.contactValue}>hola@recoleccta.eco</Text>
+            <Text style={styles.contactTitle}>Escríbenos</Text>
+            <Text style={styles.contactSubtitle}>Responderemos tu solicitud en menos de 24 horas hábiles.</Text>
+            <Text style={styles.contactValue}>{SUPPORT_EMAIL}</Text>
           </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.faqBlock}>
           <Text style={styles.faqTitle}>Preguntas frecuentes</Text>
-          <Text style={styles.faqSubtitle}>Encuentra soluciones rapidas a dudas comunes.</Text>
-
-          <TouchableOpacity style={styles.helpButton} activeOpacity={0.9}>
-            <Text style={styles.helpButtonText}>Ver Centro de Ayuda</Text>
-            <MaterialCommunityIcons name="open-in-new" size={18} color={Colors.onPrimary} />
-          </TouchableOpacity>
+          <Text style={styles.faqSubtitle}>Encuentra respuestas rápidas a las dudas más comunes.</Text>
 
           <View style={styles.faqList}>
             {FAQ_ITEMS.map((item, index) => {
@@ -162,8 +174,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   heroTitle: {
-    fontSize: 40,
-    lineHeight: 43,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '800',
     color: Colors.onSurface,
     marginBottom: 8,
@@ -179,10 +191,9 @@ const styles = StyleSheet.create({
   },
   contactCard: {
     backgroundColor: Colors.surfaceContainerLow,
-    borderRadius: 28,
-    padding: 20,
-    minHeight: 220,
-    justifyContent: 'space-between',
+    borderRadius: 24,
+    padding: 18,
+    gap: 4,
   },
   contactTopRow: {
     flexDirection: 'row',
@@ -198,7 +209,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   contactTitle: {
-    fontSize: 30,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.onSurface,
     marginTop: 6,
@@ -210,8 +221,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   contactValue: {
-    marginTop: 10,
-    fontSize: 24,
+    marginTop: 8,
+    fontSize: 18,
     fontWeight: '800',
     color: Colors.primary,
   },
@@ -223,7 +234,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.outlineVariant,
   },
   faqTitle: {
-    fontSize: 34,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.onSurface,
   },
@@ -232,22 +243,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.onSurfaceVariant,
     marginBottom: 14,
-  },
-  helpButton: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-  },
-  helpButtonText: {
-    color: Colors.onPrimary,
-    fontWeight: '700',
-    fontSize: 14,
   },
   faqList: {
     gap: 10,

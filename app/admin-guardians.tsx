@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -33,7 +34,7 @@ export default function AdminGuardiansScreen() {
       }
     } catch (error) {
       setApiFailed(true);
-      Alert.alert('Error de conexión', 'No se pudieron cargar los guardianes del servidor.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -77,13 +78,7 @@ export default function AdminGuardiansScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
         ) : apiFailed ? (
-          <View style={styles.errorContainer}>
-            <MaterialCommunityIcons name="alert-circle" size={32} color={Colors.error} />
-            <Text style={styles.errorText}>No se pudieron cargar los guardianes debido a una falla en la API.</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={loadGuardians}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ConnectionError compact onRetry={() => loadGuardians()} />
         ) : guardians.length === 0 ? (
           <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 20 }}>No hay guardianes registrados.</Text>
         ) : (

@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -32,7 +33,7 @@ export default function AdminRolesScreen() {
       }
     } catch (error) {
       setApiFailed(true);
-      Alert.alert('Error de conexión', 'No se pudo conectar con el servidor para obtener los usuarios.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ export default function AdminRolesScreen() {
 
   const handleRoleChange = (userId: number, userEmail: string, newRole: string) => {
     if (apiFailed) {
-      Alert.alert('Error', 'Acción no disponible debido a una falla en la API.');
+      Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       return;
     }
     Alert.alert('Cambiar Rol', `¿Cambiar rol de ${userEmail} a ${newRole.toUpperCase()}?`, [
@@ -137,13 +138,7 @@ export default function AdminRolesScreen() {
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
         ) : apiFailed ? (
-          <View style={styles.errorContainer}>
-            <MaterialCommunityIcons name="alert-circle" size={32} color={Colors.error} />
-            <Text style={styles.errorText}>No se pudieron cargar los usuarios debido a una falla en la API.</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={loadUsers}>
-              <Text style={styles.retryButtonText}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ConnectionError compact onRetry={() => loadUsers()} />
         ) : users.length === 0 ? (
           <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, marginTop: 20 }}>No hay usuarios en el sistema.</Text>
         ) : (

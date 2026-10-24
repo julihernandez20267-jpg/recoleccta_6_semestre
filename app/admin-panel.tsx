@@ -1,3 +1,4 @@
+import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -106,13 +107,7 @@ export default function AdminPanelScreen() {
           </View>
 
           {apiFailed ? (
-            <View style={styles.errorBanner}>
-              <MaterialCommunityIcons name="alert-circle-outline" size={24} color={Colors.error} />
-              <Text style={styles.errorBannerText}>Falla de comunicación con la API. Mostrando datos fuera de línea.</Text>
-              <TouchableOpacity style={styles.retryBtnSmall} onPress={loadData}>
-                <Text style={styles.retryBtnText}>Reintentar</Text>
-              </TouchableOpacity>
-            </View>
+            <ConnectionError compact onRetry={() => loadData()} />
           ) : (
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
