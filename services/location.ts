@@ -1,33 +1,67 @@
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
+import { reverseGeocode } from './api';
 
-export type CurrentPlace = {
-  latitude: number;
-  longitude: number;
+export type PlaceDescription = {
   address?: string;
   neighborhood?: string;
+  city?: string;
+  // Texto listo para mostrar: "Carrera 10, Santander, Girardot".
+  label?: string;
+};
+
+export type CurrentPlace = PlaceDescription & {
+  latitude: number;
+  longitude: number;
 };
 
 export type LocationResult = { ok: true; place: CurrentPlace } | { ok: false; reason: 'denied' | 'unavailable' };
 
-// Pide permiso, toma la posición del GPS y trata de traducirla a una dirección legible.
+function buildLabel(parts: PlaceDescription): string | undefined {
+  const label = [parts.address, parts.neighborhood, parts.city].filter(Boolean).join(', ');
+  return label || undefined;
+}
+
+// Traduce coordenadas a una dirección legible. En el celular usa primero el servicio del
+// teléfono; en web (o si el teléfono no encuentra nada) usa OpenStreetMap a través del backend.
+export async function describePlace(latitude: number, longitude: number): Promise<PlaceDescription> {
+  if (Platform.OS !== 'web') {
+    try {
+      const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (geo && (geo.street || geo.name)) {
+        const place: PlaceDescription = {
+          address: [geo.street, geo.streetNumber].filter(Boolean).join(' # ') || geo.name || undefined,
+          neighborhood: geo.district || geo.subregion || undefined,
+          city: geo.city || undefined,
+        };
+        return { ...place, label: buildLabel(place) };
+      }
+    } catch {
+      // seguimos con el backend
+    }
+  }
+  try {
+    const res = await reverseGeocode(latitude, longitude);
+    const place: PlaceDescription = {
+      address: res.data?.address || undefined,
+      neighborhood: res.data?.neighborhood || undefined,
+      city: res.data?.city || undefined,
+    };
+    return { ...place, label: buildLabel(place) };
+  } catch {
+    return {};
+  }
+}
+
+// Pide permiso, toma la posición del GPS y la describe como dirección.
 export async function getCurrentPlace(): Promise<LocationResult> {
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') return { ok: false, reason: 'denied' };
 
   try {
     const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const place: CurrentPlace = { latitude: coords.latitude, longitude: coords.longitude };
-    try {
-      const [geo] = await Location.reverseGeocodeAsync(coords);
-      if (geo) {
-        place.address = [geo.street, geo.streetNumber].filter(Boolean).join(' ') || geo.name || undefined;
-        place.neighborhood = geo.district || geo.subregion || geo.city || undefined;
-      }
-    } catch {
-      // Sin dirección legible igual sirven las coordenadas.
-    }
-    return { ok: true, place };
+    const description = await describePlace(coords.latitude, coords.longitude);
+    return { ok: true, place: { latitude: coords.latitude, longitude: coords.longitude, ...description } };
   } catch {
     return { ok: false, reason: 'unavailable' };
   }

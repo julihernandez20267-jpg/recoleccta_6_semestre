@@ -76,3 +76,7 @@ if not MAIL_PROVIDER:
         MAIL_PROVIDER = "smtp"
     else:
         MAIL_PROVIDER = "console"
+
+# Conversión de coordenadas a dirección (OpenStreetMap Nominatim). Su política de uso pide
+# identificar la aplicación con un User-Agent que incluya un contacto.
+GEOCODER_USER_AGENT = os.getenv("GEOCODER_USER_AGENT", "Recoleccta/1.0 (proyecto academico; recoleccta@gmail.com)")

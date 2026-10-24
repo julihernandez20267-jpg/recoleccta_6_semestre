@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 from app import config
 from app.database import engine
-from app.routers import admin, auth, containers, guardian, reports, routes
+from app.routers import admin, auth, containers, geo, guardian, reports, routes
 from app.seed import init_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -52,7 +52,7 @@ async def validation_handler(_: Request, exc: RequestValidationError):
     )
 
 
-for r in (auth.router, admin.router, routes.router, guardian.router, reports.router, containers.router):
+for r in (auth.router, admin.router, routes.router, guardian.router, reports.router, containers.router, geo.router):
     app.include_router(r, prefix="/api")
 
 

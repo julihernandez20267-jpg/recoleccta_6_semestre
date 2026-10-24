@@ -13,7 +13,7 @@ import { DEFAULT_REGION } from '../constants/Map';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
 import { createReport, getReports } from '@/services/api';
-import { getCurrentPlace, locationErrorMessage } from '@/services/location';
+import { describePlace, getCurrentPlace, locationErrorMessage } from '@/services/location';
 
 export default function ReportFormScreen() {
   const router = useRouter();
@@ -24,6 +24,8 @@ export default function ReportFormScreen() {
   const [selectedType, setSelectedType] = React.useState(defaultType);
   const [neighborhood, setNeighborhood] = useState('');
   const [locating, setLocating] = useState(false);
+  // true mientras la dirección la puso la app (GPS o mapa); si la persona escribe, ya no se reemplaza.
+  const [addressAutoFilled, setAddressAutoFilled] = useState(false);
   const [observations, setObservations] = React.useState('');
   const [location, setLocation] = useState('');
   const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -56,7 +58,14 @@ export default function ReportFormScreen() {
     }
     const { place } = result;
     setSelectedCoordinate({ latitude: place.latitude, longitude: place.longitude });
-    if (place.address) setLocation((current) => current || place.address || '');
+    applyDescription(place);
+  }
+
+  function applyDescription(place: { label?: string; neighborhood?: string }) {
+    if (place.label && (!location.trim() || addressAutoFilled)) {
+      setLocation(place.label);
+      setAddressAutoFilled(true);
+    }
     if (place.neighborhood) setNeighborhood(place.neighborhood);
   }
 
@@ -91,8 +100,9 @@ export default function ReportFormScreen() {
     return acc;
   }, {});
 
-  const handleMapPress = (coordinate: { latitude: number; longitude: number }) => {
+  const handleMapPress = async (coordinate: { latitude: number; longitude: number }) => {
     setSelectedCoordinate(coordinate);
+    applyDescription(await describePlace(coordinate.latitude, coordinate.longitude));
   };
 
   const handleSubmitReport = async () => {
@@ -111,7 +121,7 @@ export default function ReportFormScreen() {
     };
 
     const cleanAddress = location.trim();
-    const resolvedAddress = cleanAddress || `Lat ${resolvedCoordinate.latitude.toFixed(5)}, Lng ${resolvedCoordinate.longitude.toFixed(5)}`;
+    const resolvedAddress = cleanAddress || 'Punto marcado en el mapa';
     const cleanObservations = observations.trim();
 
     setLoading(true);
@@ -252,7 +262,10 @@ export default function ReportFormScreen() {
         <TextInput
           style={styles.locationInput}
           value={location}
-          onChangeText={setLocation}
+          onChangeText={(text) => {
+            setLocation(text);
+            setAddressAutoFilled(false);
+          }}
           placeholder="Dirección o punto de referencia (opcional)"
           placeholderTextColor={Colors.onSurfaceVariant}
         />
@@ -273,7 +286,7 @@ export default function ReportFormScreen() {
             </View>
             <Text style={[Typography.bodySm, styles.mapSelectionHelper]}>
               {selectedCoordinate
-                ? `Punto marcado: ${selectedCoordinate.latitude.toFixed(5)}, ${selectedCoordinate.longitude.toFixed(5)}`
+                ? 'Punto marcado. Si no es exacto, toca el mapa en el lugar correcto.'
                 : 'Toca el mapa para marcar dónde está el punto lleno.'}
             </Text>
             <TouchableOpacity style={styles.gpsButton} onPress={handleUseCurrentLocation} disabled={locating} activeOpacity={0.85}>

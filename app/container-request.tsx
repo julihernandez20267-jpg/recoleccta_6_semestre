@@ -1,7 +1,9 @@
+import { AppMap } from '@/components/maps/AppMap';
+import type { LatLng } from '@/components/maps/types';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { createContainerRequest } from '@/services/api';
-import { getCurrentPlace, locationErrorMessage } from '@/services/location';
+import { describePlace, getCurrentPlace, locationErrorMessage } from '@/services/location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -25,6 +27,9 @@ export default function ContainerRequestScreen() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [locating, setLocating] = useState(false);
+  const [point, setPoint] = useState<LatLng | null>(null);
+  const [describing, setDescribing] = useState(false);
+  const [addressNotFound, setAddressNotFound] = useState(false);
   const [sending, setSending] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -37,11 +42,22 @@ export default function ContainerRequestScreen() {
       return;
     }
     const { place } = result;
-    setAddress(
-      place.address
-        ? [place.address, place.neighborhood].filter(Boolean).join(', ')
-        : `Lat ${place.latitude.toFixed(5)}, Lng ${place.longitude.toFixed(5)}`,
-    );
+    setPoint({ latitude: place.latitude, longitude: place.longitude });
+    applyDescription(place.label);
+  }
+
+  function applyDescription(label?: string) {
+    setAddressNotFound(!label);
+    if (label) setAddress(label);
+  }
+
+  // Si el punto del GPS no es exacto, la persona toca el mapa donde está su negocio.
+  async function handleMapPress(coordinate: LatLng) {
+    setPoint(coordinate);
+    setDescribing(true);
+    const description = await describePlace(coordinate.latitude, coordinate.longitude);
+    setDescribing(false);
+    applyDescription(description.label);
   }
 
   async function handleSubmit() {
@@ -135,6 +151,26 @@ export default function ContainerRequestScreen() {
         )}
         <Text style={styles.locationButtonText}>{locating ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}</Text>
       </TouchableOpacity>
+
+      {point ? (
+        <View style={styles.mapBox}>
+          <View style={styles.mapFrame}>
+            <AppMap
+              initialRegion={{ ...point, latitudeDelta: 0.006, longitudeDelta: 0.006 }}
+              focus={point}
+              onPress={handleMapPress}
+              markers={[{ id: 'delivery', coordinate: point, color: Colors.error, title: 'Punto de entrega' }]}
+            />
+          </View>
+          <Text style={styles.mapHint}>
+            {describing
+              ? 'Buscando la dirección...'
+              : addressNotFound
+                ? 'No encontramos la dirección exacta de este punto. Escríbela arriba (ej. Calle 17 # 10-25).'
+                : '¿El punto no es correcto? Toca el mapa donde está tu negocio. Puedes completar la dirección arriba (número, local).'}
+          </Text>
+        </View>
+      ) : null}
 
       <Text style={styles.label}>Indicaciones (opcional)</Text>
       <TextInput
@@ -267,6 +303,22 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     minHeight: 96,
+  },
+  mapBox: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  mapFrame: {
+    height: 190,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+  },
+  mapHint: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.onSurfaceVariant,
   },
   locationButton: {
     flexDirection: 'row',

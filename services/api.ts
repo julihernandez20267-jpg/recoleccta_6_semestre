@@ -104,3 +104,12 @@ export async function updateContainerStatus(requestId: number, status: 'pending'
   const res = await apiClient.put(`/containers/${requestId}/status`, { status });
   return res.data;
 }
+
+// Convierte coordenadas en dirección legible (OpenStreetMap, a través del backend)
+export async function reverseGeocode(latitude: number, longitude: number) {
+  const res = await apiClient.get('/geo/reverse', { params: { lat: latitude, lng: longitude } });
+  return res.data as {
+    success: boolean;
+    data?: { address?: string | null; neighborhood?: string | null; city?: string | null };
+  };
+}
