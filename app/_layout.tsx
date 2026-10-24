@@ -6,6 +6,7 @@ import { AppState, Modal, Platform, Pressable, Text, View } from 'react-native';
 import 'react-native-reanimated';
 import '@/services/webAlert';
 
+import { AppShell } from '@/components/AppShell';
 import { WebAlertHost } from '@/components/WebAlertHost';
 import { Colors } from '@/constants/Colors';
 import { homeRouteFor } from '@/constants/Roles';
@@ -15,18 +16,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSessionTimeout } from '@/hooks/use-session-timeout';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-
-// En pantallas anchas (navegador de computador) la app se muestra centrada con ancho de celular.
-const WEB_FRAME =
-  Platform.OS === 'web'
-    ? {
-        flex: 1,
-        width: '100%' as const,
-        maxWidth: 520,
-        alignSelf: 'center' as const,
-        boxShadow: '0 0 24px rgba(0,0,0,0.12)',
-      }
-    : { flex: 1 };
 
 export const unstable_settings = {
   anchor: 'splash',
@@ -125,7 +114,7 @@ function RootLayoutContent() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={WEB_FRAME} onTouchStart={handleUserInteraction}>
+      <AppShell onTouchStart={handleUserInteraction}>
         <Stack>
           <Stack.Screen name="splash" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
@@ -151,7 +140,7 @@ function RootLayoutContent() {
           <Stack.Screen name="report-form" options={{ headerShown: false }} />
           <Stack.Screen name="report-detail/[id]" options={{ headerShown: false }} />
         </Stack>
-      </View>
+      </AppShell>
       <StatusBar style="auto" />
       {Platform.OS === 'web' ? <WebAlertHost /> : null}
 
