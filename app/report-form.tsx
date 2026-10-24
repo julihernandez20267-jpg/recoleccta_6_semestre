@@ -13,7 +13,7 @@ import { DEFAULT_REGION } from '../constants/Map';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
 import { createReport, getReports } from '@/services/api';
-import { getCurrentPlace, LOCATION_ERROR_MESSAGES } from '@/services/location';
+import { getCurrentPlace, locationErrorMessage } from '@/services/location';
 
 export default function ReportFormScreen() {
   const router = useRouter();
@@ -51,7 +51,7 @@ export default function ReportFormScreen() {
     const result = await getCurrentPlace();
     setLocating(false);
     if (!result.ok) {
-      Alert.alert('Ubicación', LOCATION_ERROR_MESSAGES[result.reason]);
+      Alert.alert('Ubicación', locationErrorMessage(result.reason, 'marca el punto tocando el mapa'));
       return;
     }
     const { place } = result;

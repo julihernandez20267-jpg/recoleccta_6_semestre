@@ -1,7 +1,7 @@
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { createContainerRequest } from '@/services/api';
-import { getCurrentPlace, LOCATION_ERROR_MESSAGES } from '@/services/location';
+import { getCurrentPlace, locationErrorMessage } from '@/services/location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -33,7 +33,7 @@ export default function ContainerRequestScreen() {
     const result = await getCurrentPlace();
     setLocating(false);
     if (!result.ok) {
-      Alert.alert('Ubicación', LOCATION_ERROR_MESSAGES[result.reason]);
+      Alert.alert('Ubicación', locationErrorMessage(result.reason, 'escribe la dirección de entrega'));
       return;
     }
     const { place } = result;

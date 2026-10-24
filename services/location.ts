@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 export type CurrentPlace = {
   latitude: number;
@@ -32,7 +33,15 @@ export async function getCurrentPlace(): Promise<LocationResult> {
   }
 }
 
-export const LOCATION_ERROR_MESSAGES: Record<'denied' | 'unavailable', string> = {
-  denied: 'No diste permiso de ubicación. Puedes marcar el punto en el mapa o escribir la dirección.',
-  unavailable: 'No pudimos obtener tu ubicación. Revisa que el GPS esté encendido o marca el punto en el mapa.',
-};
+// alternative: qué puede hacer la persona en esa pantalla si no hay ubicación
+// (p. ej. 'marca el punto en el mapa' o 'escribe la dirección').
+export function locationErrorMessage(reason: 'denied' | 'unavailable', alternative: string): string {
+  if (reason === 'denied') {
+    return Platform.OS === 'web'
+      ? `El navegador no dio permiso de ubicación. Actívalo con el ícono del candado junto a la dirección de la página y vuelve a intentarlo, o ${alternative}.`
+      : `No diste permiso de ubicación. Puedes activarlo en los ajustes del teléfono, o ${alternative}.`;
+  }
+  return Platform.OS === 'web'
+    ? `No pudimos obtener tu ubicación desde este computador. Inténtalo desde el celular, o ${alternative}.`
+    : `No pudimos obtener tu ubicación. Revisa que el GPS esté encendido, o ${alternative}.`;
+}
