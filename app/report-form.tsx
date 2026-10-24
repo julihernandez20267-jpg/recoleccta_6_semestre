@@ -13,16 +13,21 @@ import { DEFAULT_REGION } from '../constants/Map';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
 import { createReport, getReports } from '@/services/api';
+import { getCurrentPlace, LOCATION_ERROR_MESSAGES } from '@/services/location';
 
 export default function ReportFormScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedType, setSelectedType] = React.useState('plastic');
+  const { user } = useAuth();
+  const isBusiness = user?.role === 'business';
+  const defaultType = isBusiness ? 'cooking-oil' : 'plastic';
+  const [selectedType, setSelectedType] = React.useState(defaultType);
+  const [neighborhood, setNeighborhood] = useState('');
+  const [locating, setLocating] = useState(false);
   const [observations, setObservations] = React.useState('');
   const [location, setLocation] = useState('');
   const [selectedCoordinate, setSelectedCoordinate] = useState<{ latitude: number; longitude: number } | null>(null);
   const [photoUri, setPhotoUri] = useState('');
-  const { user } = useAuth();
   const [apiFailed, setApiFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const canChooseLocationOnMap = user?.role !== 'guardian';
@@ -30,6 +35,30 @@ export default function ReportFormScreen() {
   useEffect(() => {
     checkApi();
   }, []);
+
+  // A los comercios les preguntamos de una vez si usamos su ubicación actual.
+  useEffect(() => {
+    if (!isBusiness) return;
+    Alert.alert('¿Usar tu ubicación actual?', 'Así sabremos dónde recoger. También puedes marcar el punto en el mapa.', [
+      { text: 'Marcar en el mapa', style: 'cancel' },
+      { text: 'Usar mi ubicación', onPress: () => void handleUseCurrentLocation() },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBusiness]);
+
+  async function handleUseCurrentLocation() {
+    setLocating(true);
+    const result = await getCurrentPlace();
+    setLocating(false);
+    if (!result.ok) {
+      Alert.alert('Ubicación', LOCATION_ERROR_MESSAGES[result.reason]);
+      return;
+    }
+    const { place } = result;
+    setSelectedCoordinate({ latitude: place.latitude, longitude: place.longitude });
+    if (place.address) setLocation((current) => current || place.address || '');
+    if (place.neighborhood) setNeighborhood(place.neighborhood);
+  }
 
   async function checkApi() {
     try {
@@ -43,7 +72,14 @@ export default function ReportFormScreen() {
 
   const initialRegion = useMemo(() => ({ ...DEFAULT_REGION, latitudeDelta: 0.02, longitudeDelta: 0.02 }), []);
 
+  // El aceite es un servicio exclusivo de comercios.
+  const oilTypes = [
+    { id: 'cooking-oil', label: 'Aceite de cocina', icon: 'pot-steam-outline' },
+    { id: 'motor-oil', label: 'Aceite de motor', icon: 'oil' },
+  ];
+
   const wasteTypes = [
+    ...(isBusiness ? oilTypes : []),
     { id: 'plastic', label: 'Plástico', icon: 'bottle-soda' },
     { id: 'paper', label: 'Papel', icon: 'file-document' },
     { id: 'glass', label: 'Vidrio', icon: 'glass-wine' },
@@ -90,7 +126,7 @@ export default function ReportFormScreen() {
     try {
       const res = await createReport({
         address: resolvedAddress,
-        neighborhood: 'Por confirmar',
+        neighborhood: neighborhood || 'Por confirmar',
         type: typeLabelMap[selectedType] ?? 'Residuo mixto',
         latitude: resolvedCoordinate.latitude,
         longitude: resolvedCoordinate.longitude,
@@ -100,17 +136,24 @@ export default function ReportFormScreen() {
       });
 
       if (res.success) {
-        Alert.alert('¡Reporte enviado!', 'Gracias por ayudar. Te avisaremos cuando un guardián lo atienda.', [
+        Alert.alert(
+          isBusiness ? '¡Solicitud enviada!' : '¡Reporte enviado!',
+          isBusiness
+            ? 'Tu solicitud tiene prioridad. Te avisaremos cuando un guardián vaya en camino.'
+            : 'Gracias por ayudar. Te avisaremos cuando un guardián lo atienda.',
+          [
           {
-            text: 'Ver mis reportes',
-            onPress: () => router.replace('/(tabs)/reports'),
+            text: isBusiness ? 'Ver mis solicitudes' : 'Ver mis reportes',
+            onPress: () => router.replace(isBusiness ? '/business-panel' : '/(tabs)/reports'),
           },
           {
             text: 'Listo',
             onPress: () => router.back(),
           },
-        ]);
-        setSelectedType('plastic');
+          ],
+        );
+        setSelectedType(defaultType);
+        setNeighborhood('');
         setObservations('');
         setLocation('');
         setSelectedCoordinate(null);
@@ -203,8 +246,12 @@ export default function ReportFormScreen() {
           <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[Typography.headlineSm, { color: Colors.onSurface }]}>Nuevo reporte</Text>
-          <Text style={[Typography.bodySm, { color: Colors.onSurfaceVariant }]}>Cuéntanos dónde hay un punto lleno.</Text>
+          <Text style={[Typography.headlineSm, { color: Colors.onSurface }]}>
+            {isBusiness ? 'Solicitar recolección' : 'Nuevo reporte'}
+          </Text>
+          <Text style={[Typography.bodySm, { color: Colors.onSurfaceVariant }]}>
+            {isBusiness ? 'Dinos qué residuo recogemos en tu local.' : 'Cuéntanos dónde hay un punto lleno.'}
+          </Text>
         </View>
       </View>
 
@@ -244,6 +291,16 @@ export default function ReportFormScreen() {
                 ? `Punto marcado: ${selectedCoordinate.latitude.toFixed(5)}, ${selectedCoordinate.longitude.toFixed(5)}`
                 : 'Toca el mapa para marcar dónde está el punto lleno.'}
             </Text>
+            {Platform.OS !== 'web' ? (
+              <TouchableOpacity style={styles.gpsButton} onPress={handleUseCurrentLocation} disabled={locating} activeOpacity={0.85}>
+                {locating ? (
+                  <ActivityIndicator size="small" color={Colors.primary} />
+                ) : (
+                  <MaterialCommunityIcons name="crosshairs-gps" size={18} color={Colors.primary} />
+                )}
+                <Text style={styles.gpsButtonText}>{locating ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}</Text>
+              </TouchableOpacity>
+            ) : null}
           </>
         ) : (
           <View style={styles.helperCard}>
@@ -341,7 +398,7 @@ export default function ReportFormScreen() {
         </View>
       ) : (
         <GradientButton
-          label={loading ? "Enviando..." : "Enviar reporte"}
+          label={loading ? "Enviando..." : isBusiness ? "Enviar solicitud" : "Enviar reporte"}
           onPress={handleSubmitReport}
           icon="send"
           style={{ marginTop: 32, marginBottom: 40 }}
@@ -361,6 +418,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 40,
+  },
+  gpsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+  },
+  gpsButtonText: {
+    color: Colors.primary,
+    fontWeight: '700',
+    fontSize: 14,
   },
   headerRow: {
     flexDirection: 'row',

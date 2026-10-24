@@ -24,6 +24,11 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
     { key: 'map', label: 'Mapa', icon: 'map-outline', href: '/guardian-map' },
     { key: 'profile', label: 'Perfil', icon: 'account-outline', href: '/guardian-profile' },
   ],
+  business: [
+    { key: 'home', label: 'Inicio', icon: 'storefront-outline', href: '/business-panel' },
+    { key: 'reports', label: 'Reportes', icon: 'file-document-multiple-outline', href: '/(tabs)/reports' },
+    { key: 'profile', label: 'Perfil', icon: 'account-outline', href: '/(tabs)/profile' },
+  ],
   admin: [
     { key: 'home', label: 'Inicio', icon: 'view-dashboard-outline', href: '/admin-panel' },
     { key: 'guardians', label: 'Guardianes', icon: 'account-hard-hat-outline', href: '/admin-guardians' },

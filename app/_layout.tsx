@@ -6,6 +6,7 @@ import { AppState, Modal, Pressable, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/Colors';
+import { homeRouteFor } from '@/constants/Roles';
 import { Typography } from '@/constants/Typography';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -94,13 +95,7 @@ function RootLayoutContent() {
     }
 
     if (user && inPublicScreen) {
-      if (user.role === 'admin') {
-        router.replace('/admin-panel');
-      } else if (user.role === 'guardian') {
-        router.replace('/guardian-panel');
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace(homeRouteFor(user.role));
     }
   }, [loading, router, segments, user]);
 
@@ -116,6 +111,9 @@ function RootLayoutContent() {
           <Stack.Screen name="guardian-list" options={{ headerShown: false }} />
           <Stack.Screen name="guardian-profile" options={{ headerShown: false }} />
           <Stack.Screen name="admin-panel" options={{ headerShown: false }} />
+          <Stack.Screen name="business-panel" options={{ headerShown: false }} />
+          <Stack.Screen name="container-request" options={{ headerShown: false }} />
+          <Stack.Screen name="containers" options={{ headerShown: false }} />
           <Stack.Screen name="admin-guardians" options={{ headerShown: false }} />
           <Stack.Screen name="admin-routes" options={{ headerShown: false }} />
           <Stack.Screen name="admin-create-guardian" options={{ headerShown: false }} />

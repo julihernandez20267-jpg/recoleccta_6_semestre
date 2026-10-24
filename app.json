@@ -42,7 +42,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Recoleccta usa tu ubicación para marcar dónde recoger los residuos o entregar el bidón."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

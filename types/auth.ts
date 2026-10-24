@@ -1,4 +1,10 @@
-export type UserRole = 'admin' | 'guardian' | 'user';
+export type UserRole = 'admin' | 'guardian' | 'user' | 'business';
+
+export interface BusinessInfo {
+  name: string;
+  type: string;
+  phone?: string | null;
+}
 
 export interface AuthUser {
   uid: number;
@@ -6,6 +12,7 @@ export interface AuthUser {
   role: UserRole;
   displayName?: string;
   photoURL?: string;
+  business?: BusinessInfo | null;
 }
 
 export interface AuthSession {

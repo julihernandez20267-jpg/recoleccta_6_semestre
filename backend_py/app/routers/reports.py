@@ -9,6 +9,9 @@ from app.security import get_current_user, require_staff
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
+# La recolección de aceite es un servicio exclusivo para comercios.
+OIL_TYPES = {"aceite de cocina", "aceite de motor"}
+
 STATUS_ALIASES = {
     "pending": "pending",
     "pendiente": "pending",
@@ -37,6 +40,8 @@ def get_report(report_id: int, _: User = Depends(get_current_user), db: Session 
 
 @router.post("")
 def create_report(body: ReportCreateIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if body.type.strip().lower() in OIL_TYPES and user.role != "business":
+        raise HTTPException(status_code=403, detail="La recolección de aceite es solo para comercios.")
     report = Report(
         address=body.address.strip(),
         neighborhood=(body.neighborhood or "").strip() or None,

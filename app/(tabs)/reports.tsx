@@ -1,4 +1,4 @@
-import { StatusChip } from '@/components/ui/StatusChip';
+import { PriorityBadge, StatusChip } from '@/components/ui/StatusChip';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -122,6 +122,7 @@ export default function ReportsTabScreen() {
                 <Text style={styles.dateText}>{formatDateTime(item.created_at)}</Text>
               </View>
 
+              {item.is_priority ? <PriorityBadge businessName={item.business_name} /> : null}
               <Text style={styles.addressText} numberOfLines={1}>{item.address}</Text>
               <Text style={styles.neighborhoodText} numberOfLines={1}>{item.neighborhood || 'Por confirmar'}</Text>
 

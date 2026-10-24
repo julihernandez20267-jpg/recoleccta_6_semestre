@@ -1,9 +1,9 @@
-import { StatusChip } from '@/components/ui/StatusChip';
+import { PriorityBadge, StatusChip } from '@/components/ui/StatusChip';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { formatDateTime, normalizeStatus, STATUS_META } from '../../constants/Reports';
@@ -111,6 +111,7 @@ export default function ReportDetailScreen() {
             <StatusChip status={status} />
             <Text style={styles.reportId}>Reporte #{report.id.toString().padStart(4, '0')}</Text>
           </View>
+          {report.is_priority ? <PriorityBadge businessName={report.business_name} /> : null}
 
           <Text style={styles.addressText}>{report.address}</Text>
           <Text style={styles.neighborhoodText}>{report.neighborhood || 'Por confirmar'}</Text>
@@ -140,10 +141,26 @@ export default function ReportDetailScreen() {
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="account-outline" size={16} color={Colors.primary} />
             <View style={styles.infoTextWrap}>
-              <Text style={styles.infoLabel}>REPORTADO POR</Text>
-              <Text style={styles.infoValue}>{report.reporter_name || 'Ciudadano'}</Text>
+              <Text style={styles.infoLabel}>{report.is_priority ? 'SOLICITADO POR' : 'REPORTADO POR'}</Text>
+              <Text style={styles.infoValue}>
+                {report.is_priority ? report.business_name : report.reporter_name || 'Ciudadano'}
+              </Text>
             </View>
           </View>
+
+          {report.is_priority && report.business_phone && (user?.role === 'guardian' || user?.role === 'admin') ? (
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => Linking.openURL(`tel:${String(report.business_phone).replace(/\s+/g, '')}`)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="phone-outline" size={16} color={Colors.primary} />
+              <View style={styles.infoTextWrap}>
+                <Text style={styles.infoLabel}>TELÉFONO DEL COMERCIO</Text>
+                <Text style={[styles.infoValue, { color: Colors.primary }]}>{report.business_phone} · Llamar</Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
 
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="image-outline" size={16} color={Colors.primary} />

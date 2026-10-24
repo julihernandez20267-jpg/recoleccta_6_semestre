@@ -8,8 +8,9 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { homeRouteFor } from '../constants/Roles';
 import { DEFAULT_REGION } from '../constants/Map';
-import { normalizeStatus, STATUS_META } from '../constants/Reports';
+import { normalizeStatus, sortByPriority, STATUS_META } from '../constants/Reports';
 import { useAuth } from '../context/AuthContext';
 
 export default function GuardianMapScreen() {
@@ -25,8 +26,8 @@ export default function GuardianMapScreen() {
   const [apiFailed, setApiFailed] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const pendingReports = reports.filter((item) => item.status === 'pending' || item.status === 'pendiente');
-  const inProgressReports = reports.filter((item) => item.status === 'in-progress' || item.status === 'en proceso');
+  const pendingReports = sortByPriority(reports.filter((item) => normalizeStatus(item.status) === 'pending'));
+  const inProgressReports = sortByPriority(reports.filter((item) => normalizeStatus(item.status) === 'in-progress'));
 
   useEffect(() => {
     if (user) {
@@ -34,11 +35,7 @@ export default function GuardianMapScreen() {
         loadData();
       } else {
         setLoading(false);
-        if (user.role === 'admin') {
-          router.replace('/admin-panel');
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace(homeRouteFor(user.role));
       }
     }
   }, [user]);
@@ -227,8 +224,8 @@ export default function GuardianMapScreen() {
                   <Marker
                     key={`report-${item.id}`}
                     coordinate={{ latitude: item.latitude, longitude: item.longitude }}
-                    pinColor={item.status === 'pending' || item.status === 'pendiente' ? '#b3261e' : '#e18d00'}
-                    title={`Reporte #${item.id}`}
+                    pinColor={item.is_priority ? 'violet' : normalizeStatus(item.status) === 'pending' ? '#b3261e' : '#e18d00'}
+                    title={item.is_priority ? `Comercio: ${item.business_name}` : `Reporte #${item.id}`}
                     description={item.address}
                   />
                 ))}

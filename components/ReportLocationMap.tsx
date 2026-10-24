@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { MapPressEvent, Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 
@@ -18,13 +18,22 @@ export function ReportLocationMap({
   selectedCoordinate,
   onCoordinateSelect,
 }: ReportLocationMapProps) {
+  const mapRef = useRef<MapView>(null);
+
+  // Centra el mapa en el punto elegido (por ejemplo, cuando viene del GPS).
+  useEffect(() => {
+    if (selectedCoordinate) {
+      mapRef.current?.animateToRegion({ ...selectedCoordinate, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 400);
+    }
+  }, [selectedCoordinate]);
+
   const handlePress = (event: MapPressEvent) => {
     onCoordinateSelect(event.nativeEvent.coordinate);
   };
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion} onPress={handlePress}>
+      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion} onPress={handlePress}>
         {selectedCoordinate ? <Marker coordinate={selectedCoordinate} /> : null}
       </MapView>
     </View>

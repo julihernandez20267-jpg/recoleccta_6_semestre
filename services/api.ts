@@ -83,3 +83,24 @@ export async function completeGuardianRoute(guardianId: number, routeId?: string
   return res.data;
 }
 
+
+// Bidones para aceite usado (comercios)
+export async function getContainerRequests() {
+  const res = await apiClient.get('/containers');
+  return res.data;
+}
+
+export async function createContainerRequest(data: {
+  oil_type: 'cooking' | 'motor';
+  quantity: number;
+  address: string;
+  notes?: string;
+}) {
+  const res = await apiClient.post('/containers', data);
+  return res.data;
+}
+
+export async function updateContainerStatus(requestId: number, status: 'pending' | 'in-progress' | 'delivered') {
+  const res = await apiClient.put(`/containers/${requestId}/status`, { status });
+  return res.data;
+}

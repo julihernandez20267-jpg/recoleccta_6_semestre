@@ -17,8 +17,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { BUSINESS_TYPES, homeRouteFor } from '../constants/Roles';
 
 type Mode = 'login' | 'register' | 'recover' | 'reset';
+
+const ACCOUNT_OPTIONS = [
+  { key: 'user', title: 'Ciudadano', hint: 'Reporto puntos llenos', icon: 'account-outline' },
+  { key: 'business', title: 'Comercio', hint: 'Restaurante, taller, gasolinera', icon: 'storefront-outline' },
+] as const;
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -26,6 +32,10 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
+  const [accountType, setAccountType] = useState<'user' | 'business'>('user');
+  const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,6 +56,10 @@ export default function LoginScreen() {
         Alert.alert('Nombre requerido', 'Escribe tu nombre para crear la cuenta.');
         return;
       }
+      if (accountType === 'business' && (businessName.trim().length < 2 || !businessType)) {
+        Alert.alert('Datos del comercio', 'Escribe el nombre del negocio y elige qué tipo de comercio es.');
+        return;
+      }
       if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
         Alert.alert('Correo inválido', 'Revisa que el correo esté bien escrito.');
         return;
@@ -61,19 +75,13 @@ export default function LoginScreen() {
       if (mode === 'login') {
         const session = await loginUser(email, password);
         await login(session);
-
-        if (session.user.role === 'admin') {
-          router.replace('/admin-panel');
-        } else if (session.user.role === 'guardian') {
-          router.replace('/guardian-panel');
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace(homeRouteFor(session.user.role));
       } else {
         // La cuenta nueva entra directamente, sin volver a escribir los datos.
-        const session = await registerUser(email, password, name);
+        const business = accountType === 'business' ? { name: businessName, type: businessType, phone } : undefined;
+        const session = await registerUser(email, password, name, business);
         await login(session);
-        router.replace('/(tabs)');
+        router.replace(homeRouteFor(session.user.role));
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al autenticar.';
@@ -195,7 +203,77 @@ export default function LoginScreen() {
 
                 {mode === 'register' && (
                   <View style={styles.inputGroup}>
-                    <Text style={styles.inputLabel}>NOMBRE</Text>
+                    <Text style={styles.inputLabel}>TIPO DE CUENTA</Text>
+                    <View style={styles.accountTypeRow}>
+                      {ACCOUNT_OPTIONS.map((option) => {
+                        const selected = accountType === option.key;
+                        return (
+                          <TouchableOpacity
+                            key={option.key}
+                            style={[styles.accountTypeCard, selected && styles.accountTypeCardActive]}
+                            onPress={() => setAccountType(option.key)}
+                            activeOpacity={0.85}
+                          >
+                            <MaterialCommunityIcons name={option.icon} size={26} color={selected ? Colors.primary : Colors.onSurfaceVariant} />
+                            <Text style={[styles.accountTypeTitle, selected && { color: Colors.primary }]}>{option.title}</Text>
+                            <Text style={styles.accountTypeHint}>{option.hint}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {mode === 'register' && accountType === 'business' && (
+                  <>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>NOMBRE DEL NEGOCIO</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ej. Restaurante El Sabor"
+                        placeholderTextColor={Colors.onSurfaceVariant}
+                        autoCapitalize="words"
+                        value={businessName}
+                        onChangeText={setBusinessName}
+                        editable={!loading}
+                      />
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>TIPO DE COMERCIO</Text>
+                      <View style={styles.chipRow}>
+                        {BUSINESS_TYPES.map((type) => {
+                          const selected = businessType === type;
+                          return (
+                            <TouchableOpacity
+                              key={type}
+                              style={[styles.typeChip, selected && styles.typeChipActive]}
+                              onPress={() => setBusinessType(type)}
+                              activeOpacity={0.85}
+                            >
+                              <Text style={[styles.typeChipText, selected && styles.typeChipTextActive]}>{type}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                    <View style={styles.inputGroup}>
+                      <Text style={styles.inputLabel}>TELÉFONO DEL NEGOCIO</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ej. 316 000 0000"
+                        placeholderTextColor={Colors.onSurfaceVariant}
+                        keyboardType="phone-pad"
+                        value={phone}
+                        onChangeText={setPhone}
+                        editable={!loading}
+                      />
+                    </View>
+                  </>
+                )}
+
+                {mode === 'register' && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>{accountType === 'business' ? 'NOMBRE DE CONTACTO' : 'NOMBRE'}</Text>
                     <TextInput
                       style={styles.input}
                       placeholder="¿Cómo te llamas?"
@@ -527,6 +605,60 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 20,
+  },
+  accountTypeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  accountTypeCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.outlineVariant,
+    backgroundColor: Colors.surfaceContainerLowest,
+  },
+  accountTypeCardActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.surfaceContainerLow,
+  },
+  accountTypeTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.onSurface,
+  },
+  accountTypeHint: {
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+    textAlign: 'center',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
+    backgroundColor: Colors.surfaceContainerLowest,
+  },
+  typeChipActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary,
+  },
+  typeChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.onSurface,
+  },
+  typeChipTextActive: {
+    color: Colors.onPrimary,
   },
   inputLabel: {
     fontSize: 11,

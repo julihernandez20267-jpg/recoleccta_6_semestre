@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { homeRouteFor } from '../constants/Roles';
 import { getReports } from '@/services/api';
 
 function getDisplayName(email?: string, displayName?: string) {
@@ -43,11 +44,7 @@ export default function GuardianProfileScreen() {
         loadReports();
       } else {
         setLoading(false);
-        if (user.role === 'admin') {
-          router.replace('/admin-panel');
-        } else {
-          router.replace('/(tabs)');
-        }
+        router.replace(homeRouteFor(user.role));
       }
     }
   }, [user]);

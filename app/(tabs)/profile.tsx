@@ -123,7 +123,12 @@ export default function ProfileScreen() {
               <MaterialCommunityIcons name="pencil" size={18} color={Colors.primary} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.profileEmail}>{user?.email || 'usuario@recoleccta.com'}</Text>
+          <Text style={styles.profileEmail}>{user?.email}</Text>
+          {user?.business ? (
+            <Text style={styles.profileEmail}>
+              {user.business.name} · {user.business.type}
+            </Text>
+          ) : null}
 
           <View style={styles.roleBadge}>
             <Text style={styles.roleBadgeText}>{roleLabel(role).toUpperCase()}</Text>

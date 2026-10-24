@@ -67,3 +67,4 @@ def require_roles(*roles: str):
 
 require_admin = require_roles("admin")
 require_staff = require_roles("admin", "guardian")
+require_business = require_roles("business")

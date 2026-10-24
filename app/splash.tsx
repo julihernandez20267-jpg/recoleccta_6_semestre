@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { homeRouteFor } from '../constants/Roles';
 
 export default function SplashScreen() {
   const { user, loading } = useAuth();
@@ -42,17 +43,7 @@ export default function SplashScreen() {
       return;
     }
 
-    if (user.role === 'admin') {
-      router.replace('/admin-panel');
-      return;
-    }
-
-    if (user.role === 'guardian') {
-      router.replace('/guardian-panel');
-      return;
-    }
-
-    router.replace('/(tabs)');
+    router.replace(homeRouteFor(user.role));
   }, [loading, router, user]);
 
   const barWidth = progress.interpolate({

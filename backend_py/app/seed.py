@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.database import Base, SessionLocal, engine
-from app.models import Permission, Report, Role, Route, RouteAssignment, User
+from app.models import BusinessProfile, ContainerRequest, Permission, Report, Role, Route, RouteAssignment, User  # noqa: F401
 from app.security import hash_password
 
 log = logging.getLogger("recoleccta.seed")
@@ -17,6 +17,7 @@ ROLES = {
     "admin": "Administrador: gestiona usuarios, guardianes y rutas",
     "guardian": "Guardián: recorre rutas y atiende reportes",
     "user": "Ciudadano: crea y consulta reportes",
+    "business": "Comercio: restaurantes, talleres y gasolineras con recolección prioritaria y de aceite",
 }
 
 PERMISSIONS = {
@@ -29,12 +30,18 @@ PERMISSIONS = {
     "users.manage": "Gestionar usuarios y roles",
     "guardians.create": "Crear guardianes",
     "profile.update": "Editar el perfil propio",
+    "containers.request": "Solicitar bidones para aceite usado",
+    "containers.manage": "Atender solicitudes de bidones",
 }
 
 ROLE_PERMISSIONS = {
     "admin": list(PERMISSIONS.keys()),
-    "guardian": ["reports.create", "reports.read", "reports.update_status", "routes.read", "routes.complete", "profile.update"],
+    "guardian": [
+        "reports.create", "reports.read", "reports.update_status", "routes.read", "routes.complete",
+        "profile.update", "containers.manage",
+    ],
     "user": ["reports.create", "reports.read", "profile.update"],
+    "business": ["reports.create", "reports.read", "profile.update", "containers.request"],
 }
 
 

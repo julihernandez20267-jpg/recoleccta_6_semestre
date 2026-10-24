@@ -17,6 +17,10 @@ class RegisterIn(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=6, max_length=200)
     displayName: Optional[str] = Field(default=None, max_length=120)
+    accountType: Optional[str] = Field(default="user", max_length=20)  # user | business
+    businessName: Optional[str] = Field(default=None, max_length=150)
+    businessType: Optional[str] = Field(default=None, max_length=60)
+    phone: Optional[str] = Field(default=None, max_length=40)
 
 
 class ProfileUpdateIn(BaseModel):
@@ -71,3 +75,14 @@ class ReportCreateIn(BaseModel):
 class ReportStatusIn(BaseModel):
     status: str
     guardian_name: Optional[str] = Field(default=None, max_length=150)
+
+
+class ContainerRequestIn(BaseModel):
+    oil_type: str = Field(min_length=1, max_length=20)
+    quantity: int = Field(default=1, ge=1, le=10)
+    address: str = Field(min_length=1, max_length=255)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+
+
+class ContainerStatusIn(BaseModel):
+    status: str

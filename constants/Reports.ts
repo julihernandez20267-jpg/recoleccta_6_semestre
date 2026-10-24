@@ -42,3 +42,26 @@ export function formatRelative(iso?: string | null): string {
   if (days < 7) return `Hace ${days} día${days === 1 ? '' : 's'}`;
   return formatDateTime(iso);
 }
+
+// Bidones para aceite usado
+export type ContainerStatus = 'pending' | 'in-progress' | 'delivered';
+
+export const CONTAINER_STATUS_META: Record<ContainerStatus, { label: string; bg: string; text: string; icon: IconName }> = {
+  pending: { label: 'Solicitado', bg: '#fff2c8', text: '#7a5d00', icon: 'clock-outline' },
+  'in-progress': { label: 'En camino', bg: '#d2e9f4', text: '#163845', icon: 'truck-delivery-outline' },
+  delivered: { label: 'Entregado', bg: '#d8f3dc', text: '#1f6f3a', icon: 'check-decagram' },
+};
+
+export function containerStatusMeta(status?: string | null) {
+  return CONTAINER_STATUS_META[status as ContainerStatus] ?? CONTAINER_STATUS_META.pending;
+}
+
+export const OIL_LABELS: Record<string, string> = {
+  cooking: 'Aceite de cocina',
+  motor: 'Aceite de motor',
+};
+
+// Los comercios aparecen primero; dentro de cada grupo se respeta el orden original (más reciente primero).
+export function sortByPriority<T extends { is_priority?: boolean }>(items: T[]): T[] {
+  return [...items].sort((a, b) => Number(Boolean(b.is_priority)) - Number(Boolean(a.is_priority)));
+}

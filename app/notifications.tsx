@@ -7,10 +7,10 @@ import { BottomNav } from '../components/ui/BottomNav';
 import { ConnectionError } from '../components/ui/ConnectionError';
 import { SurfaceCard } from '../components/ui/SurfaceCard';
 import { Colors } from '../constants/Colors';
-import { formatRelative, normalizeStatus, STATUS_META } from '../constants/Reports';
+import { containerStatusMeta, formatRelative, normalizeStatus, OIL_LABELS, STATUS_META } from '../constants/Reports';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
-import { getGuardianRoute, getReports } from '../services/api';
+import { getContainerRequests, getGuardianRoute, getReports } from '../services/api';
 import type { AuthUser } from '../types/auth';
 
 type NotificationItem = {
@@ -65,10 +65,37 @@ async function buildNotifications(user: AuthUser): Promise<NotificationItem[]> {
   const reports: any[] = reportsRes.data?.reports || [];
   const items: NotificationItem[] = [];
 
-  if (user.role === 'user') {
+  const ownsReports = user.role === 'user' || user.role === 'business';
+  if (ownsReports) {
     reports.filter((r) => r.created_by === user.uid).forEach((r) => items.push(reportNotification(r, true)));
   } else {
     reports.forEach((r) => items.push(reportNotification(r, false)));
+  }
+
+  // Bidones: el comercio ve los suyos; el admin y los guardianes, los que faltan por entregar.
+  if (user.role !== 'user') {
+    const containersRes = await getContainerRequests();
+    (containersRes.data?.requests || [])
+      .filter((c: any) => user.role === 'business' || c.status !== 'delivered')
+      .forEach((c: any) => {
+        const meta = containerStatusMeta(c.status);
+        const what = `${c.quantity} ${c.quantity === 1 ? 'bidón' : 'bidones'} para ${(OIL_LABELS[c.oil_type] ?? 'aceite').toLowerCase()}`;
+        items.push({
+          key: `container-${c.id}`,
+          title:
+            user.role === 'business'
+              ? c.status === 'delivered'
+                ? 'Bidón entregado'
+                : c.status === 'in-progress'
+                  ? 'Tu bidón va en camino'
+                  : 'Solicitud de bidón recibida'
+              : `${c.business_name || 'Un comercio'} pidió bidón`,
+          body: user.role === 'business' ? `${what}. Estado: ${meta.label.toLowerCase()}.` : `${what} en ${c.address}.`,
+          date: c.status === 'pending' ? c.created_at : c.updated_at,
+          icon: 'barrel-outline',
+          color: meta.text,
+        });
+      });
   }
 
   if (user.role === 'guardian') {
@@ -163,8 +190,8 @@ export default function NotificationsScreen() {
               <MaterialCommunityIcons name="bell-check-outline" size={44} color={Colors.outline} />
               <Text style={[Typography.titleSm, { color: Colors.onSurface }]}>Estás al día</Text>
               <Text style={[Typography.bodyMd, styles.emptyText]}>
-                {role === 'user'
-                  ? 'Aquí verás cuando tus reportes sean recibidos, tomados por un guardián o atendidos.'
+                {role === 'user' || role === 'business'
+                  ? 'Aquí verás cuando tus solicitudes sean recibidas, tomadas por un guardián o atendidas.'
                   : 'Aquí verás los reportes nuevos y los cambios en tus rutas.'}
               </Text>
             </View>

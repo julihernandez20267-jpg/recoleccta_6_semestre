@@ -70,6 +70,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
 
     role_obj = relationship("Role", lazy="joined")
+    business = relationship("BusinessProfile", uselist=False, lazy="selectin")
 
     @property
     def role(self) -> str:
@@ -83,7 +84,23 @@ class User(Base):
             "role": self.role,
             "displayName": self.display_name,
             "photoURL": self.photo_url,
+            "business": self.business.to_dict() if self.business else None,
         }
+
+
+class BusinessProfile(Base):
+    """Datos del comercio (restaurante, taller, gasolinera...). Tabla aparte para no alterar 'users'."""
+
+    __tablename__ = "business_profiles"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    business_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    business_type: Mapped[str] = mapped_column(String(60), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+
+    def to_dict(self) -> dict:
+        return {"name": self.business_name, "type": self.business_type, "phone": self.phone}
 
 
 class Route(Base):
@@ -156,7 +173,11 @@ class Report(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
+    creator = relationship("User", foreign_keys=[created_by], lazy="joined")
+
     def to_dict(self) -> dict:
+        # Los reportes de comercios tienen prioridad: se calcula según quién lo creó.
+        business = self.creator.business if self.creator is not None and self.creator.role == "business" else None
         return {
             "id": self.id,
             "address": self.address,
@@ -171,6 +192,46 @@ class Report(Base):
             "created_by": self.created_by,
             "assigned_guardian_id": self.assigned_guardian_id,
             "guardian_name": self.guardian_name,
+            "created_at": iso(self.created_at),
+            "updated_at": iso(self.updated_at),
+            "is_priority": business is not None,
+            "business_name": business.business_name if business else None,
+            "business_phone": business.phone if business else None,
+        }
+
+
+class ContainerRequest(Base):
+    """Solicitud de bidón para guardar aceite usado; la empresa lo lleva al comercio."""
+
+    __tablename__ = "container_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    business_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    oil_type: Mapped[str] = mapped_column(String(20), nullable=False)  # cooking | motor
+    quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    address: Mapped[str] = mapped_column(String(255), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)  # pending | in-progress | delivered
+    handled_by_name: Mapped[str | None] = mapped_column(String(150))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    requester = relationship("User", lazy="joined")
+
+    def to_dict(self) -> dict:
+        business = self.requester.business if self.requester is not None else None
+        return {
+            "id": self.id,
+            "business_id": self.business_id,
+            "business_name": business.business_name if business else None,
+            "business_type": business.business_type if business else None,
+            "business_phone": business.phone if business else None,
+            "oil_type": self.oil_type,
+            "quantity": self.quantity,
+            "address": self.address,
+            "notes": self.notes,
+            "status": self.status,
+            "handled_by_name": self.handled_by_name,
             "created_at": iso(self.created_at),
             "updated_at": iso(self.updated_at),
         }

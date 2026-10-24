@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { ROLE_LABELS, ROLE_SHORT_LABELS } from '../constants/Roles';
 import type { UserRole } from '../types/auth';
-import { getRouteAssignments, getUsers, updateUserRole } from '@/services/api';
+import { getContainerRequests, getRouteAssignments, getUsers, updateUserRole } from '@/services/api';
 
 export default function AdminPanelScreen() {
   const { logout, user } = useAuth();
@@ -18,6 +18,7 @@ export default function AdminPanelScreen() {
 
   const [users, setUsers] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [openContainers, setOpenContainers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [apiFailed, setApiFailed] = useState(false);
 
@@ -29,10 +30,12 @@ export default function AdminPanelScreen() {
     setLoading(true);
     setApiFailed(false);
     try {
-      const [usersRes, assignmentsRes] = await Promise.all([
+      const [usersRes, assignmentsRes, containersRes] = await Promise.all([
         getUsers(),
         getRouteAssignments(),
+        getContainerRequests(),
       ]);
+      setOpenContainers((containersRes.data?.requests || []).filter((r: any) => r.status !== 'delivered').length);
       if (usersRes.success && usersRes.data?.users) {
         setUsers(usersRes.data.users);
       } else {
@@ -86,6 +89,7 @@ export default function AdminPanelScreen() {
 
   const totalUsers = users.length;
   const citizenCount = users.filter(u => u.role === 'user').length;
+  const businessCount = users.filter(u => u.role === 'business').length;
   const guardianCount = users.filter(u => u.role === 'guardian').length;
   
   const assignedGuardianIds = new Set(assignments.map(a => a.guardianId));
@@ -129,7 +133,13 @@ export default function AdminPanelScreen() {
               <View style={styles.statCard}>
                 <MaterialCommunityIcons name="account" size={28} color={Colors.primary} />
                 <Text style={styles.statValue}>{citizenCount}</Text>
-                <Text style={styles.statLabel}>Usuarios comunes</Text>
+                <Text style={styles.statLabel}>Ciudadanos</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons name="storefront-outline" size={28} color={Colors.primary} />
+                <Text style={styles.statValue}>{businessCount}</Text>
+                <Text style={styles.statLabel}>Comercios</Text>
               </View>
 
               <View style={styles.statCard}>
@@ -142,6 +152,12 @@ export default function AdminPanelScreen() {
                 <MaterialCommunityIcons name="alert-circle" size={28} color={Colors.error} />
                 <Text style={styles.statValue}>{guardiansWithoutRoute}</Text>
                 <Text style={styles.statLabel}>Guardianes sin ruta</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <MaterialCommunityIcons name="barrel-outline" size={28} color={Colors.secondary} />
+                <Text style={styles.statValue}>{openContainers}</Text>
+                <Text style={styles.statLabel}>Bidones por entregar</Text>
               </View>
             </View>
           )}
@@ -161,6 +177,11 @@ export default function AdminPanelScreen() {
               <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/admin-guardians')}>
                 <MaterialCommunityIcons name="shield-account" size={20} color={Colors.primary} />
                 <Text style={styles.actionBtnText}>GUARDIANES</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionBtn} onPress={() => router.push('/containers')}>
+                <MaterialCommunityIcons name="barrel-outline" size={20} color={Colors.primary} />
+                <Text style={styles.actionBtnText}>BIDONES</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -238,9 +259,10 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 24, fontWeight: '800', color: Colors.primary, marginTop: 8, fontFamily: 'Manrope' },
   statLabel: { fontSize: 11, color: Colors.onSurfaceVariant, marginTop: 6, textAlign: 'center', fontWeight: '600' },
-  actionButtons: { flexDirection: 'row', gap: 10, marginBottom: 28 },
+  actionButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 28 },
   actionBtn: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '45%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

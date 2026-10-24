@@ -10,7 +10,7 @@ from app.security import hash_password, require_admin
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
-VALID_ROLES = {"admin", "guardian", "user"}
+VALID_ROLES = {"admin", "guardian", "user", "business"}
 
 
 @router.get("/users")
@@ -30,7 +30,7 @@ def list_users(_: User = Depends(require_admin), db: Session = Depends(get_db)):
 def update_user_role(body: RoleUpdateIn, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     role_name = body.role.strip().lower()
     if role_name not in VALID_ROLES:
-        raise HTTPException(status_code=400, detail="Rol inválido. Usa admin, guardian o user.")
+        raise HTTPException(status_code=400, detail="Rol inválido. Usa admin, guardian, user o business.")
 
     target = db.get(User, body.userId)
     if target is None:

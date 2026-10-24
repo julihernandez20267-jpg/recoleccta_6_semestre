@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.database import get_db
 from app.email_service import send_otp_email
-from app.models import Role, User, utcnow
+from app.models import BusinessProfile, Role, User, utcnow
 from app.schemas import (
     LoginIn,
     ProfileUpdateIn,
@@ -53,13 +53,30 @@ def register(body: RegisterIn, db: Session = Depends(get_db)):
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo.")
 
+    account_type = (body.accountType or "user").strip().lower()
+    if account_type not in ("user", "business"):
+        raise HTTPException(status_code=400, detail="Tipo de cuenta inválido. Usa user o business.")
+    is_business = account_type == "business"
+    business_name = (body.businessName or "").strip()
+    business_type = (body.businessType or "").strip()
+    if is_business and (not business_name or not business_type):
+        raise HTTPException(status_code=400, detail="Para registrar un comercio indica el nombre y el tipo de negocio.")
+
     user = User(
         email=email,
         password_hash=hash_password(body.password),
         display_name=(body.displayName or "").strip() or None,
-        role_id=get_role(db, "user").id,
+        role_id=get_role(db, "business" if is_business else "user").id,
     )
     db.add(user)
+    if is_business:
+        db.flush()  # necesitamos user.id para el perfil del comercio
+        db.add(BusinessProfile(
+            user_id=user.id,
+            business_name=business_name,
+            business_type=business_type,
+            phone=(body.phone or "").strip() or None,
+        ))
     db.commit()
     db.refresh(user)
     return ok("Cuenta creada correctamente.", **session_payload(user))

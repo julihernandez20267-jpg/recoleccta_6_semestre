@@ -1,4 +1,4 @@
-import { StatusChip } from '@/components/ui/StatusChip';
+import { PriorityBadge, StatusChip } from '@/components/ui/StatusChip';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { getReports } from '@/services/api';
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-import { normalizeStatus } from '../constants/Reports';
+import { normalizeStatus, sortByPriority } from '../constants/Reports';
 
 export default function GuardianListScreen() {
   const router = useRouter();
@@ -73,13 +73,14 @@ export default function GuardianListScreen() {
         ) : (
           <>
             <View style={styles.reportListContent}>
-              {reports.map((item) => (
+              {sortByPriority(reports).map((item) => (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.card}
                   onPress={() => router.push({ pathname: '/report-detail/[id]', params: { id: String(item.id) } })}
                 >
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    {item.is_priority ? <PriorityBadge businessName={item.business_name} /> : null}
                     <Text style={styles.cardTitle} numberOfLines={1}>{item.address}</Text>
                     <Text style={styles.cardSubtitle}>{item.type} · #{item.id}</Text>
                   </View>
