@@ -3,9 +3,10 @@ import { ConnectionError } from '@/components/ui/ConnectionError';
 import { completeGuardianRoute, getGuardianRoute, getReports, updateReportStatus } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { AppMap } from '@/components/maps/AppMap';
+import type { MapLine, MapMarker } from '@/components/maps/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { homeRouteFor } from '../constants/Roles';
@@ -142,6 +143,35 @@ export default function GuardianMapScreen() {
     setActiveWaypointIndex((prev) => (prev + 1) % activeRoute.coordinates.length);
   };
 
+  // Rutas (verde la activa, rojo las que están en cola) y reportes abiertos para el mapa.
+  const mapLines: MapLine[] = assignedRoutes.map((assignment: any) => ({
+    id: `route-${assignment.routeId}`,
+    coordinates: assignment.coordinates || [],
+    color: assignment.status === 'in-progress' ? '#2E7D32' : '#C62828',
+    width: assignment.status === 'in-progress' ? 5 : 3,
+  }));
+  const mapMarkers: MapMarker[] = [
+    ...assignedRoutes.flatMap((assignment: any) =>
+      (assignment.coordinates || []).map((coordinate: any, index: number) => ({
+        id: `route-pt-${assignment.routeId}-${index}`,
+        coordinate,
+        kind: 'waypoint' as const,
+        color: assignment.status === 'in-progress' ? '#2E7D32' : '#C62828',
+        active: assignment.status === 'in-progress' && index === activeWaypointIndex,
+        title: `${assignment.route.name} - Punto ${index + 1}`,
+      })),
+    ),
+    ...reports
+      .filter((item) => normalizeStatus(item.status) !== 'completed')
+      .map((item) => ({
+        id: `report-${item.id}`,
+        coordinate: { latitude: item.latitude, longitude: item.longitude },
+        color: item.is_priority ? '#8e24aa' : normalizeStatus(item.status) === 'pending' ? '#b3261e' : '#e18d00',
+        title: item.is_priority ? `Comercio: ${item.business_name}` : `Reporte #${item.id}`,
+        description: item.address,
+      })),
+  ];
+
   const initialLat = activeRoute?.coordinates?.[0]?.latitude || DEFAULT_REGION.latitude;
   const initialLng = activeRoute?.coordinates?.[0]?.longitude || DEFAULT_REGION.longitude;
 
@@ -164,72 +194,17 @@ export default function GuardianMapScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.mapCard}>
-            <MapView
+            <AppMap
               style={styles.map}
-              provider={PROVIDER_GOOGLE}
               initialRegion={{
                 latitude: initialLat,
                 longitude: initialLng,
                 latitudeDelta: 0.03,
                 longitudeDelta: 0.03,
               }}
-            >
-              {assignedRoutes.map((assignment: any) => {
-                const isRouteActive = assignment.status === 'in-progress';
-                const color = isRouteActive ? '#2E7D32' : '#C62828'; // Verde activa, Rojo inactiva
-                return (
-                  <Fragment key={`route-poly-${assignment.routeId}`}>
-                    {assignment.coordinates && assignment.coordinates.length > 0 && (
-                      <Polyline
-                        coordinates={assignment.coordinates}
-                        strokeColor={color}
-                        strokeWidth={isRouteActive ? 5 : 3}
-                      />
-                    )}
-
-                    {assignment.coordinates && assignment.coordinates.map((coordinate: any, index: number) => {
-                      const isSelectedWaypoint = isRouteActive && index === activeWaypointIndex;
-                      return (
-                        <Marker 
-                          key={`route-pt-${assignment.routeId}-${index}`} 
-                          coordinate={coordinate}
-                          title={`${assignment.route.name} - Punto ${index + 1}`}
-                        >
-                          <View style={{ alignItems: 'center', justifyContent: 'center', padding: 10, overflow: 'visible' }}>
-                            <View style={{
-                              backgroundColor: isRouteActive ? '#E8F5E9' : '#FFEBEE',
-                              padding: isSelectedWaypoint ? 6 : 4,
-                              borderRadius: 99,
-                              borderWidth: 1.5,
-                              borderColor: color,
-                              transform: [{ scale: isSelectedWaypoint ? 1.4 : 1.0 }]
-                            }}>
-                              <MaterialCommunityIcons 
-                                name="map-marker" 
-                                size={isSelectedWaypoint ? 28 : 18} 
-                                color={color} 
-                              />
-                            </View>
-                          </View>
-                        </Marker>
-                      );
-                    })}
-                  </Fragment>
-                );
-              })}
-
-              {reports
-                .filter((item) => item.status !== 'completed' && item.status !== 'completado')
-                .map((item) => (
-                  <Marker
-                    key={`report-${item.id}`}
-                    coordinate={{ latitude: item.latitude, longitude: item.longitude }}
-                    pinColor={item.is_priority ? 'violet' : normalizeStatus(item.status) === 'pending' ? '#b3261e' : '#e18d00'}
-                    title={item.is_priority ? `Comercio: ${item.business_name}` : `Reporte #${item.id}`}
-                    description={item.address}
-                  />
-                ))}
-            </MapView>
+              lines={mapLines}
+              markers={mapMarkers}
+            />
           </View>
 
           <View style={styles.routeInfoCard}>

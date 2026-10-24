@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import * as SessionStorage from '@/services/sessionStorage';
 import apiClient from '@/services/apiClient';
 import type { AuthSession, AuthUser } from '@/types/auth';
 
@@ -42,23 +42,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (session: AuthSession) => {
     const stored = buildStoredSession(session);
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(stored));
+    await SessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     set({ user: session.user, token: session.token });
   },
 
   logout: async () => {
-    await SecureStore.deleteItemAsync(STORAGE_KEY);
+    await SessionStorage.deleteItem(STORAGE_KEY);
     set({ user: null, token: null });
   },
 
   setSession: async (session: AuthSession | null) => {
     if (!session) {
-      await SecureStore.deleteItemAsync(STORAGE_KEY);
+      await SessionStorage.deleteItem(STORAGE_KEY);
       set({ user: null, token: null });
       return;
     }
     const stored = buildStoredSession(session);
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(stored));
+    await SessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     set({ user: session.user, token: session.token });
   },
 
@@ -79,14 +79,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     const session: AuthSession = { user: updatedUser, token };
     const stored = buildStoredSession(session);
-    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(stored));
+    await SessionStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     set({ user: updatedUser });
   },
 
 
   restoreSession: async () => {
     try {
-      const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+      const raw = await SessionStorage.getItem(STORAGE_KEY);
       if (!raw) {
         set({ loading: false });
         return;
@@ -94,23 +94,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const parsed = JSON.parse(raw) as StoredSession;
       if (!parsed?.user || !parsed?.token) {
-        await SecureStore.deleteItemAsync(STORAGE_KEY);
+        await SessionStorage.deleteItem(STORAGE_KEY);
         set({ user: null, token: null, loading: false });
         return;
       }
 
       if (hasSessionExpired(parsed.lastActiveAt)) {
-        await SecureStore.deleteItemAsync(STORAGE_KEY);
+        await SessionStorage.deleteItem(STORAGE_KEY);
         set({ user: null, token: null, loading: false });
         return;
       }
 
       // Update last active time
       const touched = buildStoredSession(parsed);
-      await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(touched));
+      await SessionStorage.setItem(STORAGE_KEY, JSON.stringify(touched));
       set({ user: parsed.user, token: parsed.token });
     } catch {
-      await SecureStore.deleteItemAsync(STORAGE_KEY);
+      await SessionStorage.deleteItem(STORAGE_KEY);
       set({ user: null, token: null });
     } finally {
       set({ loading: false });

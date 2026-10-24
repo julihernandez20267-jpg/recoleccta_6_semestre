@@ -5,7 +5,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import MapView, { LatLng, MapPressEvent, Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { AppMap } from '@/components/maps/AppMap';
+import type { LatLng } from '@/components/maps/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { DEFAULT_REGION } from '../constants/Map';
@@ -107,11 +108,10 @@ export default function AdminRoutesScreen() {
     [routesWithAssignments, selectedRouteId],
   );
 
-  const handleMapPress = (event: MapPressEvent) => {
+  const handleMapPress = (coordinate: LatLng) => {
     if (activeSection !== 'create' || apiFailed) {
       return;
     }
-    const coordinate = event.nativeEvent.coordinate;
     setDraftPoints((current) => [...current, coordinate]);
   };
 
@@ -236,21 +236,18 @@ export default function AdminRoutesScreen() {
                 />
 
                 <View style={styles.mapCard}>
-                  <MapView
+                  <AppMap
                     style={styles.map}
-                    provider={PROVIDER_GOOGLE}
                     initialRegion={DEFAULT_REGION}
                     onPress={handleMapPress}
-                  >
-                    {mapPoints.length > 1 ? <Polyline coordinates={mapPoints} strokeColor={Colors.primary} strokeWidth={4} /> : null}
-                    {mapPoints.map((point: any, index: number) => (
-                      <Marker
-                        key={`${point.latitude}-${point.longitude}-${index}`}
-                        coordinate={point}
-                        pinColor={index === 0 ? Colors.error : Colors.primary}
-                      />
-                    ))}
-                  </MapView>
+                    lines={[{ id: 'route', coordinates: mapPoints, color: Colors.primary, width: 4 }]}
+                    markers={mapPoints.map((point: LatLng, index: number) => ({
+                      id: `${point.latitude}-${point.longitude}-${index}`,
+                      coordinate: point,
+                      color: index === 0 ? Colors.error : Colors.primary,
+                      title: index === 0 ? 'Inicio de la ruta' : `Punto ${index + 1}`,
+                    }))}
+                  />
                 </View>
 
                 <Text style={styles.helperText}>Puntos creados: {draftPoints.length}</Text>

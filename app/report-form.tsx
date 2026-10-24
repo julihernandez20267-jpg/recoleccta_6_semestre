@@ -95,14 +95,6 @@ export default function ReportFormScreen() {
     setSelectedCoordinate(coordinate);
   };
 
-  const handleWebLocationFallback = () => {
-    const coordinate = {
-      latitude: initialRegion.latitude,
-      longitude: initialRegion.longitude,
-    };
-    setSelectedCoordinate(coordinate);
-  };
-
   const handleSubmitReport = async () => {
     if (apiFailed) {
       Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
@@ -272,35 +264,26 @@ export default function ReportFormScreen() {
         />
         {canChooseLocationOnMap ? (
           <>
-            {Platform.OS === 'web' ? (
-              <TouchableOpacity style={[styles.mapPreview, styles.webMapFallback]} activeOpacity={0.85} onPress={handleWebLocationFallback}>
-                <MaterialCommunityIcons name="map-outline" size={48} color={Colors.onSurfaceVariant} />
-                <Text style={[Typography.bodyMd, styles.mapHintText]}>Haz clic para usar una ubicación de referencia en web.</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.mapPreview}>
-                <ReportLocationMap
-                  initialRegion={initialRegion}
-                  selectedCoordinate={selectedCoordinate}
-                  onCoordinateSelect={handleMapPress}
-                />
-              </View>
-            )}
+            <View style={styles.mapPreview}>
+              <ReportLocationMap
+                initialRegion={initialRegion}
+                selectedCoordinate={selectedCoordinate}
+                onCoordinateSelect={handleMapPress}
+              />
+            </View>
             <Text style={[Typography.bodySm, styles.mapSelectionHelper]}>
               {selectedCoordinate
                 ? `Punto marcado: ${selectedCoordinate.latitude.toFixed(5)}, ${selectedCoordinate.longitude.toFixed(5)}`
                 : 'Toca el mapa para marcar dónde está el punto lleno.'}
             </Text>
-            {Platform.OS !== 'web' ? (
-              <TouchableOpacity style={styles.gpsButton} onPress={handleUseCurrentLocation} disabled={locating} activeOpacity={0.85}>
-                {locating ? (
-                  <ActivityIndicator size="small" color={Colors.primary} />
-                ) : (
-                  <MaterialCommunityIcons name="crosshairs-gps" size={18} color={Colors.primary} />
-                )}
-                <Text style={styles.gpsButtonText}>{locating ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}</Text>
-              </TouchableOpacity>
-            ) : null}
+            <TouchableOpacity style={styles.gpsButton} onPress={handleUseCurrentLocation} disabled={locating} activeOpacity={0.85}>
+              {locating ? (
+                <ActivityIndicator size="small" color={Colors.primary} />
+              ) : (
+                <MaterialCommunityIcons name="crosshairs-gps" size={18} color={Colors.primary} />
+              )}
+              <Text style={styles.gpsButtonText}>{locating ? 'Buscando tu ubicación...' : 'Usar mi ubicación actual'}</Text>
+            </TouchableOpacity>
           </>
         ) : (
           <View style={styles.helperCard}>

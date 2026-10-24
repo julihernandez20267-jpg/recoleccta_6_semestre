@@ -1,45 +1,31 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import MapView, { MapPressEvent, Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
-
-type Coordinate = {
-  latitude: number;
-  longitude: number;
-};
+import { Colors } from '../constants/Colors';
+import { AppMap } from './maps/AppMap';
+import type { LatLng, MapRegion } from './maps/types';
 
 type ReportLocationMapProps = {
-  initialRegion: Region;
-  selectedCoordinate: Coordinate | null;
-  onCoordinateSelect: (coordinate: Coordinate) => void;
+  initialRegion: MapRegion;
+  selectedCoordinate: LatLng | null;
+  onCoordinateSelect: (coordinate: LatLng) => void;
 };
 
-export function ReportLocationMap({
-  initialRegion,
-  selectedCoordinate,
-  onCoordinateSelect,
-}: ReportLocationMapProps) {
-  const mapRef = useRef<MapView>(null);
-
-  // Centra el mapa en el punto elegido (por ejemplo, cuando viene del GPS).
-  useEffect(() => {
-    if (selectedCoordinate) {
-      mapRef.current?.animateToRegion({ ...selectedCoordinate, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 400);
-    }
-  }, [selectedCoordinate]);
-
-  const handlePress = (event: MapPressEvent) => {
-    onCoordinateSelect(event.nativeEvent.coordinate);
-  };
-
+export function ReportLocationMap({ initialRegion, selectedCoordinate, onCoordinateSelect }: ReportLocationMapProps) {
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} initialRegion={initialRegion} onPress={handlePress}>
-        {selectedCoordinate ? <Marker coordinate={selectedCoordinate} /> : null}
-      </MapView>
+      <AppMap
+        initialRegion={initialRegion}
+        onPress={onCoordinateSelect}
+        focus={selectedCoordinate}
+        markers={
+          selectedCoordinate
+            ? [{ id: 'selected', coordinate: selectedCoordinate, color: Colors.error, title: 'Punto del reporte' }]
+            : []
+        }
+      />
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -47,8 +33,4 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
   },
-  map: {
-    flex: 1,
-  },
 });
-

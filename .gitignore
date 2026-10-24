@@ -49,3 +49,6 @@ backend/
 __pycache__
 # APKs generados
 apk/
+
+# Configuración local de Claude Code
+.claude/

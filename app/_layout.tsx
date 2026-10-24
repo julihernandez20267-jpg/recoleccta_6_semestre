@@ -2,8 +2,9 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AppState, Modal, Pressable, Text, View } from 'react-native';
+import { AppState, Modal, Platform, Pressable, Text, View } from 'react-native';
 import 'react-native-reanimated';
+import '@/services/webAlert';
 
 import { Colors } from '@/constants/Colors';
 import { homeRouteFor } from '@/constants/Roles';
@@ -13,6 +14,18 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useSessionTimeout } from '@/hooks/use-session-timeout';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+
+// En pantallas anchas (navegador de computador) la app se muestra centrada con ancho de celular.
+const WEB_FRAME =
+  Platform.OS === 'web'
+    ? {
+        flex: 1,
+        width: '100%' as const,
+        maxWidth: 520,
+        alignSelf: 'center' as const,
+        boxShadow: '0 0 24px rgba(0,0,0,0.12)',
+      }
+    : { flex: 1 };
 
 export const unstable_settings = {
   anchor: 'splash',
@@ -45,6 +58,16 @@ function RootLayoutContent() {
       resetTimer();
     }
   };
+
+  // En el navegador no hay toques: el mouse, el teclado y la rueda también cuentan como actividad.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || !timeoutEnabled) {
+      return;
+    }
+    const events = ['pointerdown', 'keydown', 'wheel'] as const;
+    events.forEach((name) => window.addEventListener(name, handleUserInteraction, { passive: true }));
+    return () => events.forEach((name) => window.removeEventListener(name, handleUserInteraction));
+  });
 
   // Monitorear cambios de estado de la app (foreground/background)
   useEffect(() => {
@@ -101,7 +124,7 @@ function RootLayoutContent() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }} onTouchStart={handleUserInteraction}>
+      <View style={WEB_FRAME} onTouchStart={handleUserInteraction}>
         <Stack>
           <Stack.Screen name="splash" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
