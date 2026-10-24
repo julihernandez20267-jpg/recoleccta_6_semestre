@@ -77,7 +77,7 @@ export default function AdminCreateGuardianScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>CREACIÓN</Text>
         <Text style={styles.title}>Agregar guardián</Text>
-        <Text style={styles.subtitle}>Completa nombre, gmail y contraseña para registrar un nuevo guardián.</Text>
+        <Text style={styles.subtitle}>Completa nombre, correo y contraseña para registrar un nuevo guardián.</Text>
 
         <View style={styles.formCard}>
           <Text style={styles.fieldLabel}>Nombre</Text>
@@ -89,7 +89,7 @@ export default function AdminCreateGuardianScreen() {
             style={styles.input}
           />
 
-          <Text style={styles.fieldLabel}>Gmail</Text>
+          <Text style={styles.fieldLabel}>Correo</Text>
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -118,7 +118,7 @@ export default function AdminCreateGuardianScreen() {
 
           {apiFailed ? (
             <Text style={{ color: Colors.error, textAlign: 'center', marginVertical: 8, fontSize: 12 }}>
-              Falla en el servidor API. No es posible crear guardianes.
+              Sin conexión con el servidor. Inténtalo de nuevo en un momento.
             </Text>
           ) : (
             <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>

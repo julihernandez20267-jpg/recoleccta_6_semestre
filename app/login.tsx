@@ -25,6 +25,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,8 +38,22 @@ export default function LoginScreen() {
 
   async function handleSubmit() {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Campos requeridos', 'Por favor ingresa email y contraseña.');
+      Alert.alert('Campos requeridos', 'Por favor ingresa tu correo y tu contraseña.');
       return;
+    }
+    if (mode === 'register') {
+      if (name.trim().length < 2) {
+        Alert.alert('Nombre requerido', 'Escribe tu nombre para crear la cuenta.');
+        return;
+      }
+      if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+        Alert.alert('Correo inválido', 'Revisa que el correo esté bien escrito.');
+        return;
+      }
+      if (password.length < 6) {
+        Alert.alert('Contraseña corta', 'La contraseña debe tener al menos 6 caracteres.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -55,13 +70,10 @@ export default function LoginScreen() {
           router.replace('/(tabs)');
         }
       } else {
-        await registerUser(email, password);
-        setMode('login');
-        setPassword('');
-        Alert.alert(
-          'Registro exitoso',
-          'Tu cuenta ha sido creada. Por favor, inicia sesión.'
-        );
+        // La cuenta nueva entra directamente, sin volver a escribir los datos.
+        const session = await registerUser(email, password, name);
+        await login(session);
+        router.replace('/(tabs)');
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al autenticar.';
@@ -153,7 +165,7 @@ export default function LoginScreen() {
                   onPress={() => setMode('login')}
                 >
                   <Text style={[styles.tabText, mode === 'login' && styles.tabTextActive]}>
-                    Iniciar Sesión
+                    Iniciar sesión
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -177,9 +189,24 @@ export default function LoginScreen() {
                   <Text style={styles.formDescription}>
                     {mode === 'login'
                       ? 'Ingresa tus credenciales para continuar con tu impacto positivo.'
-                      : 'Crea una cuenta para empezar a contribuir con el reciclaje'}
+                      : 'Crea una cuenta para empezar a contribuir con el reciclaje.'}
                   </Text>
                 </View>
+
+                {mode === 'register' && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>NOMBRE</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="¿Cómo te llamas?"
+                      placeholderTextColor={Colors.onSurfaceVariant}
+                      autoCapitalize="words"
+                      value={name}
+                      onChangeText={setName}
+                      editable={!loading}
+                    />
+                  </View>
+                )}
 
                 {/* Email Input */}
                 <View style={styles.inputGroup}>
@@ -258,7 +285,7 @@ export default function LoginScreen() {
                 <View style={styles.formHeader}>
                   <Text style={styles.formTitle}>Recuperar contraseña</Text>
                   <Text style={styles.formDescription}>
-                    Ingresa tu correo electrónico y te enviaremos un código de verificación alfanumérico de 6 dígitos.
+                    Ingresa tu correo electrónico y te enviaremos un código de verificación de 6 caracteres.
                   </Text>
                 </View>
 
@@ -289,7 +316,7 @@ export default function LoginScreen() {
                     <ActivityIndicator color={Colors.onPrimary} size="small" />
                   ) : (
                     <View style={styles.submitButtonContent}>
-                      <Text style={styles.submitButtonText}>Enviar Código</Text>
+                      <Text style={styles.submitButtonText}>Enviar código</Text>
                       <MaterialCommunityIcons email-outline="email-send-outline" size={20} color={Colors.onPrimary} />
                     </View>
                   )}
@@ -301,7 +328,7 @@ export default function LoginScreen() {
                   onPress={() => setMode('login')}
                   disabled={loading}
                 >
-                  <Text style={styles.backLinkLabel}>Volver al Inicio de Sesión</Text>
+                  <Text style={styles.backLinkLabel}>Volver a iniciar sesión</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -312,7 +339,7 @@ export default function LoginScreen() {
                 <View style={styles.formHeader}>
                   <Text style={styles.formTitle}>Restablecer contraseña</Text>
                   <Text style={styles.formDescription}>
-                    Ingresa el código OTP de 6 dígitos y tu nueva contraseña.
+                    Ingresa el código de 6 caracteres que te llegó al correo y tu nueva contraseña.
                   </Text>
                 </View>
 
@@ -380,7 +407,7 @@ export default function LoginScreen() {
                     <ActivityIndicator color={Colors.onPrimary} size="small" />
                   ) : (
                     <View style={styles.submitButtonContent}>
-                      <Text style={styles.submitButtonText}>Restablecer Contraseña</Text>
+                      <Text style={styles.submitButtonText}>Restablecer contraseña</Text>
                       <MaterialCommunityIcons name="lock-reset" size={20} color={Colors.onPrimary} />
                     </View>
                   )}
@@ -392,7 +419,7 @@ export default function LoginScreen() {
                   onPress={() => setMode('login')}
                   disabled={loading}
                 >
-                  <Text style={styles.backLinkLabel}>Volver al Inicio de Sesión</Text>
+                  <Text style={styles.backLinkLabel}>Volver a iniciar sesión</Text>
                 </TouchableOpacity>
               </View>
             )}

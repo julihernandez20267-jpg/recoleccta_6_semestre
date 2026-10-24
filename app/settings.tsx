@@ -1,6 +1,8 @@
+import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
@@ -9,8 +11,28 @@ export default function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
+  const { user } = useAuth();
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
+  // Las preferencias se guardan en el teléfono, una por cuenta.
+  const storageKey = `recoleccta.settings.v1.${user?.uid ?? 'anon'}`;
+
+  useEffect(() => {
+    AsyncStorage.getItem(storageKey)
+      .then((raw) => {
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        setAlertsEnabled(saved.alertsEnabled ?? true);
+        setEmailEnabled(saved.emailEnabled ?? true);
+      })
+      .catch(() => {});
+  }, [storageKey]);
+
+  function save(next: { alertsEnabled: boolean; emailEnabled: boolean }) {
+    setAlertsEnabled(next.alertsEnabled);
+    setEmailEnabled(next.emailEnabled);
+    AsyncStorage.setItem(storageKey, JSON.stringify(next)).catch(() => {});
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
@@ -25,7 +47,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowTitle}>Alertas en la app</Text>
-            <Switch value={alertsEnabled} onValueChange={setAlertsEnabled} trackColor={{ true: Colors.primaryContainer }} thumbColor={alertsEnabled ? Colors.primary : '#f4f3f4'} />
+            <Switch value={alertsEnabled} onValueChange={(value) => save({ alertsEnabled: value, emailEnabled })} trackColor={{ true: Colors.primaryContainer }} thumbColor={alertsEnabled ? Colors.primary : '#f4f3f4'} />
           </View>
           <Text style={styles.rowHelp}>Recibe avisos cuando cambie el estado de tus reportes.</Text>
         </View>
@@ -33,9 +55,9 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.rowTitle}>Notificaciones por correo</Text>
-            <Switch value={emailEnabled} onValueChange={setEmailEnabled} trackColor={{ true: Colors.primaryContainer }} thumbColor={emailEnabled ? Colors.primary : '#f4f3f4'} />
+            <Switch value={emailEnabled} onValueChange={(value) => save({ alertsEnabled, emailEnabled: value })} trackColor={{ true: Colors.primaryContainer }} thumbColor={emailEnabled ? Colors.primary : '#f4f3f4'} />
           </View>
-          <Text style={styles.rowHelp}>Enviaremos actualizaciones importantes a tu email.</Text>
+          <Text style={styles.rowHelp}>Enviaremos actualizaciones importantes a tu correo.</Text>
         </View>
       </ScrollView>
     </View>

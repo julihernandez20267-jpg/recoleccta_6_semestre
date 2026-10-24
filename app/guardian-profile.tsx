@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -81,7 +82,7 @@ export default function GuardianProfileScreen() {
   ).length;
 
   async function handleLogout() {
-    Alert.alert('Cerrar sesión', '¿Estás seguro de cerrar tu cuenta?', [
+    Alert.alert('Cerrar sesión', '¿Quieres cerrar sesión?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Salir',
@@ -114,7 +115,7 @@ export default function GuardianProfileScreen() {
         const photo = result.assets[0];
         const base64Data = `data:image/jpeg;base64,${photo.base64}`;
         await updateProfile({ photoURL: base64Data });
-        Alert.alert('Éxito', 'Foto de perfil actualizada');
+        Alert.alert('Foto actualizada', 'Tu nueva foto de perfil ya está guardada.');
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
@@ -150,7 +151,7 @@ export default function GuardianProfileScreen() {
           <Text style={styles.name}>{displayName}</Text>
           <Text style={styles.email}>{user?.email || 'guardian@recoleccta.com'}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>GUARDIAN OPERATIVO</Text>
+            <Text style={styles.roleBadgeText}>GUARDIÁN OPERATIVO</Text>
           </View>
         </View>
 
@@ -191,20 +192,7 @@ export default function GuardianProfileScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}> 
-        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/guardian-panel')}>
-          <MaterialCommunityIcons name="home-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/guardian-map')}>
-          <MaterialCommunityIcons name="map-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Mapa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/guardian-profile')}>
-          <MaterialCommunityIcons name="account" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="profile" />
     </View>
   );
 }

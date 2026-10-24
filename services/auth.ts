@@ -25,11 +25,12 @@ export async function loginUser(email: string, password: string): Promise<AuthSe
   }
 }
 
-export async function registerUser(email: string, password: string): Promise<AuthSession> {
+export async function registerUser(email: string, password: string, displayName?: string): Promise<AuthSession> {
   try {
     const res = await apiClient.post<AuthResponse>('/auth/register', {
       email: email.trim().toLowerCase(),
       password,
+      displayName: displayName?.trim() || undefined,
     });
 
     const json = res.data;

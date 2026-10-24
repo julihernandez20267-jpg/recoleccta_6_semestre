@@ -72,7 +72,7 @@ export default function SplashScreen() {
         </View>
 
         <Text style={styles.brand}>Recoleccta</Text>
-        <Text style={styles.tagline}>Por un futuro mas limpio</Text>
+        <Text style={styles.tagline}>Por un futuro más limpio</Text>
 
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFill, { width: barWidth }]} />

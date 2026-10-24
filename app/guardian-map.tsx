@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { completeGuardianRoute, getGuardianRoute, getReports, updateReportStatus } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { DEFAULT_REGION } from '../constants/Map';
+import { normalizeStatus, STATUS_META } from '../constants/Reports';
 import { useAuth } from '../context/AuthContext';
 
 export default function GuardianMapScreen() {
@@ -94,7 +96,7 @@ export default function GuardianMapScreen() {
     try {
       const res = await updateReportStatus(reportId, newStatus, user?.displayName || 'Guardián');
       if (res.success) {
-        Alert.alert('Éxito', `Reporte actualizado a ${newStatus}`);
+        Alert.alert('Reporte actualizado', `El reporte #${reportId} quedó "${STATUS_META[normalizeStatus(newStatus)].label}".`);
         loadData();
       } else {
         throw new Error(res.message || 'Error al actualizar reporte.');
@@ -106,6 +108,18 @@ export default function GuardianMapScreen() {
     }
   }
 
+  function confirmCompleteRoute() {
+    if (!activeRoute) return;
+    Alert.alert(
+      'Finalizar ruta',
+      `¿Terminaste la ruta "${activeRoute.route.name}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sí, finalizar', onPress: () => void handleCompleteRoute() },
+      ],
+    );
+  }
+
   async function handleCompleteRoute() {
     if (!user?.uid || apiFailed || !activeRoute) return;
     setActionLoading(true);
@@ -113,7 +127,7 @@ export default function GuardianMapScreen() {
       // Completar la ruta activa
       const res = await completeGuardianRoute(user.uid, activeRoute.routeId);
       if (res.success) {
-        Alert.alert('Éxito', '¡Ruta completada con éxito!');
+        Alert.alert('¡Ruta completada!', 'Buen trabajo. Si tienes otra ruta en cola, ya quedó activa.');
         setActiveWaypointIndex(0);
         await loadData();
       } else {
@@ -234,7 +248,7 @@ export default function GuardianMapScreen() {
                   <Text style={styles.routeBadgeText}>SIN RUTAS ASIGNADAS</Text>
                 </View>
                 <Text style={styles.routeTitle}>Mapa de rutas</Text>
-                <Text style={styles.routeSubtitle}>Aún no tienes rutas activas o pendientes asignadas por el admin.</Text>
+                <Text style={styles.routeSubtitle}>Aún no tienes rutas asignadas por el administrador.</Text>
               </>
             ) : (
               <>
@@ -246,7 +260,7 @@ export default function GuardianMapScreen() {
                 </Text>
                 <Text style={styles.routeSubtitle}>
                   {activeRoute 
-                    ? `Zona activa: ${activeRoute.route.zone} (Verde). Rutas en espera en Rojo.` 
+                    ? `Zona: ${activeRoute.route.zone}. La ruta activa se ve en verde y las que están en cola, en rojo.` 
                     : "No hay ninguna ruta activa actualmente. Activa una ruta para iniciar."}
                 </Text>
 
@@ -257,15 +271,15 @@ export default function GuardianMapScreen() {
                     </Text>
                     <TouchableOpacity style={styles.advanceButton} onPress={handleAdvanceWaypoint}>
                       <MaterialCommunityIcons name="arrow-right-bold-circle-outline" size={18} color={Colors.primary} />
-                      <Text style={styles.advanceButtonText}>Avanzar Punto</Text>
+                      <Text style={styles.advanceButtonText}>Siguiente punto</Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
                 {activeRoute && (
-                  <TouchableOpacity style={styles.completeButton} onPress={handleCompleteRoute} disabled={actionLoading}>
+                  <TouchableOpacity style={styles.completeButton} onPress={confirmCompleteRoute} disabled={actionLoading}>
                     <MaterialCommunityIcons name="check-circle-outline" size={18} color={Colors.onPrimary} />
-                    <Text style={styles.completeButtonText}>Finalizar Ruta Activa</Text>
+                    <Text style={styles.completeButtonText}>Finalizar ruta activa</Text>
                   </TouchableOpacity>
                 )}
 
@@ -296,20 +310,7 @@ export default function GuardianMapScreen() {
         </ScrollView>
       )}
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}> 
-        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/guardian-panel')}>
-          <MaterialCommunityIcons name="home-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/guardian-map')}>
-          <MaterialCommunityIcons name="map" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Mapa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/guardian-profile')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="map" />
     </View>
   );
 }

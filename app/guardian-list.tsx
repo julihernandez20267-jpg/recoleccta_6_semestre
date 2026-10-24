@@ -1,3 +1,6 @@
+import { StatusChip } from '@/components/ui/StatusChip';
+import { ConnectionError } from '@/components/ui/ConnectionError';
+import { BottomNav } from '@/components/ui/BottomNav';
 import { getReports } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -5,15 +8,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
-
-function formatStatusLabel(status: string | undefined) {
-  const normalized = status?.toLowerCase();
-  if (normalized === 'pending') return 'pendiente';
-  if (normalized === 'in-progress') return 'en proceso';
-  if (normalized === 'completed') return 'completado';
-  if (normalized === 'pendiente' || normalized === 'en proceso' || normalized === 'completado') return normalized;
-  return status || 'pendiente';
-}
+import { normalizeStatus } from '../constants/Reports';
 
 export default function GuardianListScreen() {
   const router = useRouter();
@@ -64,25 +59,17 @@ export default function GuardianListScreen() {
 
         <View style={styles.tabsRow}>
           <TouchableOpacity style={styles.tabButton} onPress={() => router.push('/guardian-panel')}>
-            <Text style={styles.tabText}>Rutas</Text>
+            <Text style={styles.tabText}>Reportes pendientes</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-            <Text style={[styles.tabText, styles.tabTextActive]}>Reportes</Text>
+            <Text style={[styles.tabText, styles.tabTextActive]}>Todos los reportes</Text>
           </TouchableOpacity>
         </View>
 
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: 40 }} />
         ) : apiFailed ? (
-          <View style={{ padding: 20, alignItems: 'center', backgroundColor: Colors.surface, borderRadius: 12, borderWidth: 1, borderColor: Colors.outlineVariant }}>
-            <MaterialCommunityIcons name="alert-circle-outline" size={32} color={Colors.error} />
-            <Text style={{ fontSize: 13, color: Colors.onSurfaceVariant, textAlign: 'center', marginTop: 8, marginBottom: 12 }}>
-              Falla al conectar con la API de reportes.
-            </Text>
-            <TouchableOpacity style={{ backgroundColor: Colors.primary, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 }} onPress={loadReports}>
-              <Text style={{ color: Colors.onPrimary, fontSize: 12, fontWeight: '700' }}>Reintentar</Text>
-            </TouchableOpacity>
-          </View>
+          <ConnectionError compact onRetry={() => loadReports()} />
         ) : (
           <>
             <View style={styles.reportListContent}>
@@ -96,14 +83,14 @@ export default function GuardianListScreen() {
                     <Text style={styles.cardTitle} numberOfLines={1}>{item.address}</Text>
                     <Text style={styles.cardSubtitle}>{item.type} · #{item.id}</Text>
                   </View>
-                  <Text style={styles.cardStatus}>{formatStatusLabel(item.status).toUpperCase()}</Text>
+                  <StatusChip status={item.status} />
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Reportes abiertos</Text>
-              <Text style={styles.summaryValue}>{reports.filter((item) => item.status !== 'completed' && item.status !== 'completado').length}</Text>
+              <Text style={styles.summaryValue}>{reports.filter((item) => normalizeStatus(item.status) !== 'completed').length}</Text>
             </View>
 
             <Text style={styles.footNote}>Toca un reporte para ver detalle y decidir si lo tomas.</Text>
@@ -111,20 +98,7 @@ export default function GuardianListScreen() {
         )}
       </ScrollView>
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}> 
-        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/guardian-panel')}>
-          <MaterialCommunityIcons name="home-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.replace('/guardian-map')}>
-          <MaterialCommunityIcons name="map-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Mapa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/guardian-profile')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="home" />
     </View>
   );
 }

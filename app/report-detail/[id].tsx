@@ -1,3 +1,4 @@
+import { StatusChip } from '@/components/ui/StatusChip';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -94,7 +95,6 @@ export default function ReportDetailScreen() {
   }
 
   const status = normalizeStatus(report.status);
-  const statusMeta = STATUS_META[status];
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}> 
@@ -108,12 +108,7 @@ export default function ReportDetailScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.mainCard}>
           <View style={styles.topRow}>
-            <View style={[styles.chip, { backgroundColor: statusMeta.bg }]}>
-              <MaterialCommunityIcons name={statusMeta.icon} size={12} color={statusMeta.text} />
-              <Text style={[styles.chipText, { color: statusMeta.text }]}>
-                {statusMeta.label.toUpperCase()}
-              </Text>
-            </View>
+            <StatusChip status={status} />
             <Text style={styles.reportId}>Reporte #{report.id.toString().padStart(4, '0')}</Text>
           </View>
 

@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { ROLE_LABELS, ROLE_SHORT_LABELS } from '../constants/Roles';
+import type { UserRole } from '../types/auth';
 import { getRouteAssignments, getUsers, updateUserRole } from '@/services/api';
 
 export default function AdminPanelScreen() {
@@ -59,12 +62,19 @@ export default function AdminPanelScreen() {
     ]);
   }
 
-  async function handleRoleChange(userId: number, role: string) {
+  function handleRoleChange(userId: number, email: string, role: UserRole) {
     if (apiFailed) return;
+    Alert.alert('Cambiar rol', `¿Cambiar el rol de ${email} a ${ROLE_LABELS[role]}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cambiar', onPress: () => saveRole(userId, role) },
+    ]);
+  }
+
+  async function saveRole(userId: number, role: UserRole) {
     try {
       const res = await updateUserRole(userId, role);
       if (res.success) {
-        Alert.alert('Éxito', 'Rol de usuario actualizado');
+        Alert.alert('Rol actualizado', 'El cambio de rol quedó guardado.');
         loadData();
       } else {
         throw new Error(res.message);
@@ -167,21 +177,21 @@ export default function AdminPanelScreen() {
                 <View style={styles.roleButtons}>
                   <TouchableOpacity
                     style={[styles.roleBtn, u.role === 'user' ? styles.roleBtnActive : styles.roleBtnInactive]}
-                    onPress={() => handleRoleChange(u.uid, 'user')}
+                    onPress={() => u.role !== 'user' && handleRoleChange(u.uid, u.email, 'user')}
                   >
-                    <Text style={[styles.roleBtnText, u.role === 'user' && styles.roleBtnTextActive]}>USER</Text>
+                    <Text style={[styles.roleBtnText, u.role === 'user' && styles.roleBtnTextActive]}>{ROLE_SHORT_LABELS.user}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.roleBtn, u.role === 'guardian' ? styles.roleBtnActive : styles.roleBtnInactive]}
-                    onPress={() => handleRoleChange(u.uid, 'guardian')}
+                    onPress={() => u.role !== 'guardian' && handleRoleChange(u.uid, u.email, 'guardian')}
                   >
-                    <Text style={[styles.roleBtnText, u.role === 'guardian' && styles.roleBtnTextActive]}>GUARDIAN</Text>
+                    <Text style={[styles.roleBtnText, u.role === 'guardian' && styles.roleBtnTextActive]}>{ROLE_SHORT_LABELS.guardian}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.roleBtn, u.role === 'admin' ? styles.roleBtnActive : styles.roleBtnInactive]}
-                    onPress={() => handleRoleChange(u.uid, 'admin')}
+                    onPress={() => u.role !== 'admin' && handleRoleChange(u.uid, u.email, 'admin')}
                   >
-                    <Text style={[styles.roleBtnText, u.role === 'admin' && styles.roleBtnTextActive]}>ADMIN</Text>
+                    <Text style={[styles.roleBtnText, u.role === 'admin' && styles.roleBtnTextActive]}>{ROLE_SHORT_LABELS.admin}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -191,24 +201,7 @@ export default function AdminPanelScreen() {
       )}
 
       {/* Bottom Nav */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/admin-panel')}>
-          <MaterialCommunityIcons name="home" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-guardians')}>
-          <MaterialCommunityIcons name="shield-account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Guardianes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-routes' as never)}>
-          <MaterialCommunityIcons name="map-marker-path" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Rutas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile-edit')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="home" />
     </View>
   );
 }

@@ -5,7 +5,7 @@ import { Image as ExpoImage } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReportLocationMap } from '../components/ReportLocationMap';
 import { Colors } from '../constants/Colors';
@@ -13,8 +13,6 @@ import { DEFAULT_REGION } from '../constants/Map';
 import { Typography } from '../constants/Typography';
 import { useAuth } from '../context/AuthContext';
 import { createReport, getReports } from '@/services/api';
-
-const { width } = Dimensions.get('window');
 
 export default function ReportFormScreen() {
   const router = useRouter();
@@ -59,7 +57,6 @@ export default function ReportFormScreen() {
 
   const handleMapPress = (coordinate: { latitude: number; longitude: number }) => {
     setSelectedCoordinate(coordinate);
-    setLocation(`Lat ${coordinate.latitude.toFixed(5)}, Lng ${coordinate.longitude.toFixed(5)}`);
   };
 
   const handleWebLocationFallback = () => {
@@ -68,7 +65,6 @@ export default function ReportFormScreen() {
       longitude: initialRegion.longitude,
     };
     setSelectedCoordinate(coordinate);
-    setLocation(`Lat ${coordinate.latitude.toFixed(5)}, Lng ${coordinate.longitude.toFixed(5)}`);
   };
 
   const handleSubmitReport = async () => {
@@ -104,13 +100,14 @@ export default function ReportFormScreen() {
       });
 
       if (res.success) {
-        Alert.alert('Reporte enviado', 'El reporte fue registrado correctamente.', [
+        Alert.alert('¡Reporte enviado!', 'Gracias por ayudar. Te avisaremos cuando un guardián lo atienda.', [
           {
-            text: 'Ver reportes',
-            onPress: () => router.push('/(tabs)/reports'),
+            text: 'Ver mis reportes',
+            onPress: () => router.replace('/(tabs)/reports'),
           },
           {
-            text: 'OK',
+            text: 'Listo',
+            onPress: () => router.back(),
           },
         ]);
         setSelectedType('plastic');
@@ -201,10 +198,15 @@ export default function ReportFormScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={[styles.contentContainer, { paddingTop: insets.top + 12 }]}>
-      {/* Header with Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.primary} />
-      </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={[Typography.headlineSm, { color: Colors.onSurface }]}>Nuevo reporte</Text>
+          <Text style={[Typography.bodySm, { color: Colors.onSurfaceVariant }]}>Cuéntanos dónde hay un punto lleno.</Text>
+        </View>
+      </View>
 
       {/* Location Selector */}
       <View style={styles.locationSection}>
@@ -212,7 +214,7 @@ export default function ReportFormScreen() {
           style={styles.locationInput}
           value={location}
           onChangeText={setLocation}
-          placeholder="Buscar ubicación..."
+          placeholder="Dirección o punto de referencia (opcional)"
           placeholderTextColor={Colors.onSurfaceVariant}
         />
         <MaterialCommunityIcons
@@ -239,8 +241,8 @@ export default function ReportFormScreen() {
             )}
             <Text style={[Typography.bodySm, styles.mapSelectionHelper]}>
               {selectedCoordinate
-                ? 'Ubicación seleccionada correctamente.'
-                : 'Selecciona la ubicación del punto en el mapa antes de enviar el reporte.'}
+                ? `Punto marcado: ${selectedCoordinate.latitude.toFixed(5)}, ${selectedCoordinate.longitude.toFixed(5)}`
+                : 'Toca el mapa para marcar dónde está el punto lleno.'}
             </Text>
           </>
         ) : (
@@ -254,7 +256,7 @@ export default function ReportFormScreen() {
       {/* Waste Type Selector */}
       <View style={styles.wasteTypeSection}>
         <Text style={[Typography.titleMd, { color: Colors.onSurface, marginBottom: 16 }]}>
-          Tipo de Residuo
+          Tipo de residuo
         </Text>
         <View style={styles.wasteTypeGrid}>
           {wasteTypes.map((type) => (
@@ -339,7 +341,7 @@ export default function ReportFormScreen() {
         </View>
       ) : (
         <GradientButton
-          label={loading ? "Enviando..." : "Enviar Reporte"}
+          label={loading ? "Enviando..." : "Enviar reporte"}
           onPress={handleSubmitReport}
           icon="send"
           style={{ marginTop: 32, marginBottom: 40 }}
@@ -360,12 +362,17 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 40,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 20,
+  },
   backButton: {
     width: 48,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
     borderRadius: 12,
     backgroundColor: Colors.surfaceContainerLow,
   },
@@ -431,7 +438,7 @@ const styles = StyleSheet.create({
   },
   wasteTypeButton: {
     flex: 1,
-    minWidth: (width - 48 - 24) / 2,
+    minWidth: '40%',
     backgroundColor: Colors.surfaceContainerLow,
     borderRadius: 12,
     padding: 16,

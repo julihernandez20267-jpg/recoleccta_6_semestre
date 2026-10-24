@@ -1,3 +1,5 @@
+import { StatusChip } from '@/components/ui/StatusChip';
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { getGuardianRoute, getReports } from '@/services/api';
@@ -7,14 +9,13 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { normalizeStatus } from '../constants/Reports';
 
-function formatStatusLabel(status: string | undefined) {
-  const normalized = status?.toLowerCase();
-  if (normalized === 'pending') return 'pendiente';
-  if (normalized === 'in-progress') return 'en proceso';
-  if (normalized === 'completed') return 'completado';
-  if (normalized === 'pendiente' || normalized === 'en proceso' || normalized === 'completado') return normalized;
-  return status || 'pendiente';
+function greetingForNow() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días,';
+  if (hour < 19) return 'Buenas tardes,';
+  return 'Buenas noches,';
 }
 
 export default function GuardianPanelScreen() {
@@ -23,6 +24,7 @@ export default function GuardianPanelScreen() {
   const insets = useSafeAreaInsets();
 
   const [assignedRoute, setAssignedRoute] = useState<any>(null);
+  const [queuedRoutes, setQueuedRoutes] = useState(0);
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiFailed, setApiFailed] = useState(false);
@@ -52,6 +54,7 @@ export default function GuardianPanelScreen() {
         getReports(),
       ]);
 
+      setQueuedRoutes((routeRes.data?.assignments || []).filter((a: any) => a.status === 'pending').length);
       if (routeRes.success && routeRes.data) {
         const assignmentObj = routeRes.data.assignment;
         if (assignmentObj && assignmentObj.route) {
@@ -61,9 +64,7 @@ export default function GuardianPanelScreen() {
           setAssignedRoute({
             ...assignmentObj.route,
             points: parsedPoints,
-            completedPoints: 0,
             totalPoints: parsedPoints?.length || 0,
-            etaMinutes: (parsedPoints?.length || 0) * 8,
           });
         } else {
           setAssignedRoute(null);
@@ -86,7 +87,7 @@ export default function GuardianPanelScreen() {
   }
 
   const visibleReports = reports
-    .filter((item) => item.status !== 'completed' && item.status !== 'completado')
+    .filter((item) => normalizeStatus(item.status) !== 'completed')
     .slice(0, 4);
 
   return (
@@ -112,7 +113,7 @@ export default function GuardianPanelScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.heroHeader}>
-            <Text style={styles.greeting}>Buenos días,</Text>
+            <Text style={styles.greeting}>{greetingForNow()}</Text>
             <Text style={styles.guardianName}>{user?.displayName || 'Guardián Verde'}</Text>
             <Text style={styles.helperText}>
               {assignedRoute
@@ -137,14 +138,12 @@ export default function GuardianPanelScreen() {
             <View style={styles.metricsRow}>
               <View>
                 <Text style={styles.metricLabel}>Puntos de recolección</Text>
-                <Text style={styles.metricValue}>
-                  {assignedRoute ? `${assignedRoute.completedPoints} / ${assignedRoute.totalPoints}` : '-- / --'}
-                </Text>
+                <Text style={styles.metricValue}>{assignedRoute ? assignedRoute.totalPoints : '--'}</Text>
               </View>
               <View style={styles.metricDivider} />
               <View>
-                <Text style={styles.metricLabel}>Tiempo estimado</Text>
-                <Text style={styles.metricValue}>{assignedRoute?.etaMinutes ? `${assignedRoute.etaMinutes} min` : 'Sin ETA'}</Text>
+                <Text style={styles.metricLabel}>Rutas en cola</Text>
+                <Text style={styles.metricValue}>{queuedRoutes}</Text>
               </View>
             </View>
 
@@ -160,7 +159,7 @@ export default function GuardianPanelScreen() {
 
           {!assignedRoute ? (
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardText}>Aún no tienes una ruta asignada por el admin.</Text>
+              <Text style={styles.infoCardText}>Aún no tienes una ruta asignada por el administrador.</Text>
             </View>
           ) : (
             <View style={styles.routeRow}>
@@ -181,13 +180,13 @@ export default function GuardianPanelScreen() {
               <Text style={[styles.tabText, styles.tabTextActive]}>Reportes pendientes</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.tabButton} onPress={() => router.push('/guardian-list')}>
-              <Text style={styles.tabText}>Historial de rutas</Text>
+              <Text style={styles.tabText}>Todos los reportes</Text>
             </TouchableOpacity>
           </View>
 
           {visibleReports.length === 0 ? (
             <Text style={{ textAlign: 'center', color: Colors.onSurfaceVariant, fontSize: 13, marginVertical: 10 }}>
-              No hay reportes ambientales pendientes en el sistema.
+              No hay reportes pendientes por ahora.
             </Text>
           ) : (
             visibleReports.map((item) => {
@@ -204,7 +203,7 @@ export default function GuardianPanelScreen() {
                     <Text style={styles.reportTitle} numberOfLines={1}>{address}</Text>
                     <Text style={styles.reportSub}>{type} · #{item.id}</Text>
                   </View>
-                  <Text style={styles.reportStatus}>{formatStatusLabel(status).toUpperCase()}</Text>
+                  <StatusChip status={status} />
                 </TouchableOpacity>
               );
             })
@@ -212,20 +211,7 @@ export default function GuardianPanelScreen() {
         </ScrollView>
       )}
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}> 
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/guardian-panel')}>
-          <MaterialCommunityIcons name="home" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/guardian-map')}>
-          <MaterialCommunityIcons name="map-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Mapa</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/guardian-profile')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="home" />
     </View>
   );
 }

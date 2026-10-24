@@ -1,40 +1,35 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../constants/Colors';
-import { Typography } from '../../constants/Typography';
-
-type StatusVariant = 'pending' | 'in-progress' | 'completed';
+import { normalizeStatus, STATUS_META } from '../../constants/Reports';
 
 interface StatusChipProps {
-  status: StatusVariant;
-  label?: string;
+  // Acepta el estado tal como llega del backend ('pending', 'in-progress'...) o en español.
+  status?: string | null;
 }
 
-const variantMap: Record<StatusVariant, { bg: string; text: string; defaultLabel: string }> = {
-  pending: { bg: Colors.tertiaryContainer, text: Colors.onTertiary, defaultLabel: 'Pendiente' },
-  'in-progress': { bg: Colors.secondaryContainer, text: Colors.onSecondaryContainer, defaultLabel: 'En proceso' },
-  completed: { bg: Colors.primaryContainer, text: Colors.onPrimary, defaultLabel: 'Completado' },
-};
-
-export function StatusChip({ status, label }: StatusChipProps) {
-  const { bg, text, defaultLabel } = variantMap[status] ?? variantMap.pending;
+export function StatusChip({ status }: StatusChipProps) {
+  const meta = STATUS_META[normalizeStatus(status)];
   return (
-    <View style={[styles.chip, { backgroundColor: bg }]}>
-      <Text style={[Typography.labelMd, styles.label, { color: text }]}>
-        {label ?? defaultLabel}
-      </Text>
+    <View style={[styles.chip, { backgroundColor: meta.bg }]}>
+      <MaterialCommunityIcons name={meta.icon} size={12} color={meta.text} />
+      <Text style={[styles.label, { color: meta.text }]}>{meta.label.toUpperCase()}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
     alignSelf: 'flex-start',
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
 });

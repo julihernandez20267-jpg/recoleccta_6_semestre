@@ -1,58 +1,71 @@
 import { useAuth } from '@/context/AuthContext';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React from 'react';
+import type { UserRole } from '@/types/auth';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Href, useRouter } from 'expo-router';
+import React, { ComponentProps } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 
-type TabKey = 'home' | 'reports' | 'profile';
+type TabKey = 'home' | 'reports' | 'map' | 'profile' | 'guardians' | 'routes';
+type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+type NavItem = { key: TabKey; label: string; icon: IconName; href: Href };
+
+// Una sola barra inferior para toda la app; las opciones dependen del rol.
+const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
+  user: [
+    { key: 'home', label: 'Inicio', icon: 'home-outline', href: '/(tabs)' },
+    { key: 'reports', label: 'Reportes', icon: 'file-document-multiple-outline', href: '/(tabs)/reports' },
+    { key: 'profile', label: 'Perfil', icon: 'account-outline', href: '/(tabs)/profile' },
+  ],
+  guardian: [
+    { key: 'home', label: 'Inicio', icon: 'home-outline', href: '/guardian-panel' },
+    { key: 'map', label: 'Mapa', icon: 'map-outline', href: '/guardian-map' },
+    { key: 'profile', label: 'Perfil', icon: 'account-outline', href: '/guardian-profile' },
+  ],
+  admin: [
+    { key: 'home', label: 'Inicio', icon: 'view-dashboard-outline', href: '/admin-panel' },
+    { key: 'guardians', label: 'Guardianes', icon: 'account-hard-hat-outline', href: '/admin-guardians' },
+    { key: 'routes', label: 'Rutas', icon: 'map-marker-path', href: '/admin-routes' },
+    { key: 'profile', label: 'Perfil', icon: 'account-outline', href: '/(tabs)/profile' },
+  ],
+};
 
 type BottomNavProps = {
-  activeTab: TabKey;
+  activeTab?: TabKey;
 };
 
 export function BottomNav({ activeTab }: BottomNavProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-
-  const goHome = () => {
-    if (user?.role === 'guardian') {
-      router.push('/guardian-panel');
-      return;
-    }
-    router.push('/(tabs)');
-  };
+  const items = NAV_BY_ROLE[user?.role ?? 'user'];
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom || 10 }]}> 
-      <TouchableOpacity style={styles.item} onPress={goHome} activeOpacity={0.85}>
-        <MaterialIcons
-          name="home"
-          size={22}
-          color={activeTab === 'home' ? Colors.primary : Colors.onSurfaceVariant}
-        />
-        <Text style={[styles.label, activeTab === 'home' && styles.labelActive]}>Inicio</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.item} onPress={() => router.push('/(tabs)/reports')} activeOpacity={0.85}>
-        <MaterialIcons
-          name="bar-chart"
-          size={22}
-          color={activeTab === 'reports' ? Colors.primary : Colors.onSurfaceVariant}
-        />
-        <Text style={[styles.label, activeTab === 'reports' && styles.labelActive]}>Reportes</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.item} onPress={() => router.push('/(tabs)/profile')} activeOpacity={0.85}>
-        <MaterialIcons
-          name="person"
-          size={22}
-          color={activeTab === 'profile' ? Colors.primary : Colors.onSurfaceVariant}
-        />
-        <Text style={[styles.label, activeTab === 'profile' && styles.labelActive]}>Perfil</Text>
-      </TouchableOpacity>
+    <View style={[styles.container, { paddingBottom: insets.bottom || 10 }]}>
+      {items.map((item) => {
+        const active = item.key === activeTab;
+        return (
+          <TouchableOpacity
+            key={item.key}
+            style={styles.item}
+            onPress={() => !active && router.replace(item.href)}
+            activeOpacity={0.85}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+          >
+            <View style={[styles.iconPill, active && styles.iconPillActive]}>
+              <MaterialCommunityIcons
+                name={item.icon}
+                size={22}
+                color={active ? Colors.primary : Colors.onSurfaceVariant}
+              />
+            </View>
+            <Text style={[styles.label, active && styles.labelActive]}>{item.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -74,7 +87,15 @@ const styles = StyleSheet.create({
   item: {
     flex: 1,
     alignItems: 'center',
-    gap: 3,
+    gap: 2,
+  },
+  iconPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  iconPillActive: {
+    backgroundColor: Colors.primaryFixed,
   },
   label: {
     color: Colors.onSurfaceVariant,

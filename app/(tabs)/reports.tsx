@@ -1,3 +1,4 @@
+import { StatusChip } from '@/components/ui/StatusChip';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -6,7 +7,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, Touchabl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Colors } from '../../constants/Colors';
-import { formatDateTime } from '../../constants/Reports';
+import { formatDateTime, normalizeStatus } from '../../constants/Reports';
 import { getReports } from '@/services/api';
 
 type FilterKey = 'all' | 'completed' | 'in-progress' | 'pending';
@@ -14,34 +15,9 @@ type FilterKey = 'all' | 'completed' | 'in-progress' | 'pending';
 const FILTERS: Array<{ key: FilterKey; label: string }> = [
   { key: 'all', label: 'Todos' },
   { key: 'completed', label: 'Atendido' },
-  { key: 'in-progress', label: 'En Proceso' },
+  { key: 'in-progress', label: 'En proceso' },
   { key: 'pending', label: 'Pendiente' },
 ];
-
-function getStatusChipStyle(status: string) {
-  const normalized = status?.toLowerCase() || 'pendiente';
-  if (normalized === 'completed' || normalized === 'completado') {
-    return {
-      container: styles.chipCompleted,
-      text: styles.chipTextCompleted,
-      label: 'ATENDIDO',
-    };
-  }
-
-  if (normalized === 'in-progress' || normalized === 'en proceso') {
-    return {
-      container: styles.chipInProgress,
-      text: styles.chipTextInProgress,
-      label: 'EN PROCESO',
-    };
-  }
-
-  return {
-    container: styles.chipPending,
-    text: styles.chipTextPending,
-    label: 'PENDIENTE',
-  };
-}
 
 export default function ReportsTabScreen() {
   const router = useRouter();
@@ -88,20 +64,14 @@ export default function ReportsTabScreen() {
     if (activeFilter === 'all') {
       return reports;
     }
-    return reports.filter((report) => {
-      const status = report.status || 'pendiente';
-      if (activeFilter === 'completed') return status === 'completed' || status === 'completado';
-      if (activeFilter === 'in-progress') return status === 'in-progress' || status === 'en proceso';
-      if (activeFilter === 'pending') return status === 'pending' || status === 'pendiente';
-      return false;
-    });
+    return reports.filter((report) => normalizeStatus(report.status) === activeFilter);
   }, [activeFilter, reports]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historial de reportes</Text>
-        <Text style={styles.headerSubtitle}>Historial de reportes y recolecciones</Text>
+        <Text style={styles.headerSubtitle}>Sigue el estado de los reportes de tu comunidad</Text>
       </View>
 
       <View style={styles.filterRow}>
@@ -148,11 +118,7 @@ export default function ReportsTabScreen() {
               activeOpacity={0.9}
             >
               <View style={styles.cardTopRow}>
-                <View style={[styles.statusChip, getStatusChipStyle(item.status).container]}>
-                  <Text style={[styles.statusChipText, getStatusChipStyle(item.status).text]}>
-                    {getStatusChipStyle(item.status).label}
-                  </Text>
-                </View>
+                <StatusChip status={item.status} />
                 <Text style={styles.dateText}>{formatDateTime(item.created_at)}</Text>
               </View>
 

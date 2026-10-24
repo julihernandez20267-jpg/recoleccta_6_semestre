@@ -198,7 +198,7 @@ export default function NotificationsScreen() {
           )}
         </ScrollView>
       )}
-      {role !== 'admin' && <BottomNav activeTab="profile" />}
+      <BottomNav />
     </View>
   );
 }

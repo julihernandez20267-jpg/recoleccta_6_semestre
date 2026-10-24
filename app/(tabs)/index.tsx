@@ -124,13 +124,13 @@ export default function UserDashboardScreen() {
                 onPress={() => router.push('/report-form')}
               >
                 <MaterialIcons name="room" size={18} color={Colors.primary} />
-                <Text style={[Typography.titleMd, styles.heroButtonText]}>Reportar Punto Lleno</Text>
+                <Text style={[Typography.titleMd, styles.heroButtonText]}>Reportar punto lleno</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.guardianHint}>
                 <MaterialIcons name="info-outline" size={18} color={Colors.onPrimary} />
                 <Text style={[Typography.bodyMd, styles.guardianHintText]}>
-                  Accede a tu panel de guardian para gestionar rutas y puntos.
+                  Accede a tu panel de guardián para gestionar rutas y puntos.
                 </Text>
               </View>
             )}

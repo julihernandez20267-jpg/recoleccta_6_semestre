@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -347,24 +348,7 @@ export default function AdminRoutesScreen() {
         )}
       </ScrollView>
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-panel')}>
-          <MaterialCommunityIcons name="home" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-guardians')}>
-          <MaterialCommunityIcons name="shield-account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Guardianes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/admin-routes' as never)}>
-          <MaterialCommunityIcons name="map-marker-path" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Rutas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile-edit')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="routes" />
     </View>
   );
 }

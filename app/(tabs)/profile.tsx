@@ -9,23 +9,8 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/ui/BottomNav';
 import { Colors } from '../../constants/Colors';
+import { roleLabel } from '../../constants/Roles';
 import type { UserRole } from '../../types/auth';
-
-type ProfilePreset = {
-  roleLabel: string;
-};
-
-const PRESETS: Record<UserRole, ProfilePreset> = {
-  user: {
-    roleLabel: 'Usuario',
-  },
-  guardian: {
-    roleLabel: 'Guardian',
-  },
-  admin: {
-    roleLabel: 'Admin',
-  },
-};
 
 function getDisplayName(email?: string, displayName?: string) {
   if (displayName?.trim()) {
@@ -50,7 +35,6 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
 
   const role: UserRole = user?.role ?? 'user';
-  const preset = PRESETS[role];
   const displayName = getDisplayName(user?.email, user?.displayName);
   const initials = (displayName?.charAt(0) || 'U').toUpperCase();
 
@@ -92,7 +76,7 @@ export default function ProfileScreen() {
         const photo = result.assets[0];
         const base64Data = `data:image/jpeg;base64,${photo.base64}`;
         await updateProfile({ photoURL: base64Data });
-        Alert.alert('Éxito', 'Foto de perfil actualizada');
+        Alert.alert('Foto actualizada', 'Tu nueva foto de perfil ya está guardada.');
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar la foto de perfil');
@@ -142,7 +126,7 @@ export default function ProfileScreen() {
           <Text style={styles.profileEmail}>{user?.email || 'usuario@recoleccta.com'}</Text>
 
           <View style={styles.roleBadge}>
-            <Text style={styles.roleBadgeText}>{preset.roleLabel.toUpperCase()}</Text>
+            <Text style={styles.roleBadgeText}>{roleLabel(role).toUpperCase()}</Text>
           </View>
         </View>
 

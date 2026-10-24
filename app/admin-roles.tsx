@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
+import { ROLE_LABELS, ROLE_SHORT_LABELS, roleLabel } from '../constants/Roles';
+import type { UserRole } from '../types/auth';
 import { getUsers, updateUserRole } from '@/services/api';
 
 export default function AdminRolesScreen() {
@@ -58,7 +61,7 @@ export default function AdminRolesScreen() {
       Alert.alert('Sin conexión', 'No pudimos conectarnos con el servidor. Intenta de nuevo en un momento.');
       return;
     }
-    Alert.alert('Cambiar Rol', `¿Cambiar rol de ${userEmail} a ${newRole.toUpperCase()}?`, [
+    Alert.alert('Cambiar rol', `¿Cambiar el rol de ${userEmail} a ${roleLabel(newRole)}?`, [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Cambiar',
@@ -67,7 +70,7 @@ export default function AdminRolesScreen() {
           try {
             const res = await updateUserRole(userId, newRole);
             if (res.success) {
-              Alert.alert('✓', 'Rol actualizado correctamente');
+              Alert.alert('Rol actualizado', 'El cambio de rol quedó guardado.');
               loadUsers();
             } else {
               throw new Error(res.message);
@@ -96,7 +99,7 @@ export default function AdminRolesScreen() {
         {/* Header Section */}
         <View style={styles.titleSection}>
           <Text style={styles.label}>ADMINISTRACIÓN</Text>
-          <Text style={styles.mainTitle}>Asignación de Roles</Text>
+          <Text style={styles.mainTitle}>Asignación de roles</Text>
           <Text style={styles.subtitle}>Gestiona los permisos y acceso de tus usuarios.</Text>
         </View>
 
@@ -108,32 +111,32 @@ export default function AdminRolesScreen() {
 
         {/* Role Legend */}
         <View style={styles.legendSection}>
-          <Text style={styles.legendTitle}>Tipos de Roles</Text>
+          <Text style={styles.legendTitle}>Tipos de roles</Text>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.primaryFixedDim }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.legendItemTitle}>USER</Text>
-              <Text style={styles.legendItemDesc}>Acceso básico. Puede reportar problemas ambientales.</Text>
+              <Text style={styles.legendItemTitle}>{ROLE_LABELS.user}</Text>
+              <Text style={styles.legendItemDesc}>Acceso básico. Puede reportar puntos llenos y seguir sus reportes.</Text>
             </View>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.primaryFixed }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.legendItemTitle}>GUARDIAN</Text>
-              <Text style={styles.legendItemDesc}>Operadores de campo. Ejecuta rutas de recolección.</Text>
+              <Text style={styles.legendItemTitle}>{ROLE_LABELS.guardian}</Text>
+              <Text style={styles.legendItemDesc}>Personal de campo. Recorre rutas y atiende reportes.</Text>
             </View>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: Colors.error }]} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.legendItemTitle}>ADMIN</Text>
+              <Text style={styles.legendItemTitle}>{ROLE_LABELS.admin}</Text>
               <Text style={styles.legendItemDesc}>Control total del sistema y gestión de usuarios.</Text>
             </View>
           </View>
         </View>
 
         {/* Users List */}
-        <Text style={styles.sectionTitle}>Usuarios del Sistema</Text>
+        <Text style={styles.sectionTitle}>Usuarios del sistema</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
@@ -150,7 +153,7 @@ export default function AdminRolesScreen() {
                   <Text style={styles.userUID}>ID #{user.uid}</Text>
                 </View>
                 <View style={styles.currentRoleBadge}>
-                  <Text style={styles.currentRoleBadgeText}>{user.role.toUpperCase()}</Text>
+                  <Text style={styles.currentRoleBadgeText}>{roleLabel(user.role).toUpperCase()}</Text>
                 </View>
               </View>
 
@@ -169,10 +172,10 @@ export default function AdminRolesScreen() {
                         styles.roleButton,
                         isActive && { backgroundColor: roleColor, borderColor: roleColor },
                       ]}
-                      onPress={() => handleRoleChange(user.uid, user.email, role)}
+                      onPress={() => !isActive && handleRoleChange(user.uid, user.email, role)}
                     >
                       <Text style={[styles.roleButtonText, isActive && { color: Colors.onPrimary }]}>
-                        {role.toUpperCase()}
+                        {ROLE_SHORT_LABELS[role as UserRole]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -184,24 +187,7 @@ export default function AdminRolesScreen() {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-panel')}>
-          <MaterialCommunityIcons name="home" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-guardians')}>
-          <MaterialCommunityIcons name="shield-account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Guardianes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-routes' as never)}>
-          <MaterialCommunityIcons name="map-marker-path" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Rutas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile-edit')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="home" />
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -41,7 +42,7 @@ export default function AdminGuardiansScreen() {
   }
 
   async function handleLogout() {
-    Alert.alert('Cerrar sesion', 'Estas seguro?', [
+    Alert.alert('Cerrar sesión', '¿Quieres cerrar sesión?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Salir',
@@ -68,10 +69,10 @@ export default function AdminGuardiansScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.titleSection}>
-          <Text style={styles.label}>GESTION</Text>
+          <Text style={styles.label}>GESTIÓN</Text>
           <Text style={styles.mainTitle}>Guardianes</Text>
           <Text style={styles.subtitle}>
-            Ver el listado de guardianes registrados. Las contraseñas están protegidas mediante cifrado.
+            Personal de recolección registrado en la plataforma.
           </Text>
         </View>
 
@@ -95,11 +96,6 @@ export default function AdminGuardiansScreen() {
 
                   <Text style={styles.guardianName}>{name}</Text>
                   <Text style={styles.guardianEmail}>{guardian.email}</Text>
-
-                  <View style={styles.passwordBox}>
-                    <Text style={styles.passwordLabel}>Contraseña</Text>
-                    <Text style={styles.passwordValue}>••••••••</Text>
-                  </View>
                 </View>
               );
             })}
@@ -113,24 +109,7 @@ export default function AdminGuardiansScreen() {
         </TouchableOpacity>
       )}
 
-      <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-panel')}>
-          <MaterialCommunityIcons name="home" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Inicio</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.navItemActive]} onPress={() => router.replace('/admin-guardians')}>
-          <MaterialCommunityIcons name="shield-account" size={20} color={Colors.onPrimary} />
-          <Text style={[styles.navLabel, styles.navLabelActive]}>Guardianes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/admin-routes' as never)}>
-          <MaterialCommunityIcons name="map-marker-path" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Rutas</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => router.push('/profile-edit')}>
-          <MaterialCommunityIcons name="account-outline" size={20} color={Colors.onSurfaceVariant} />
-          <Text style={styles.navLabel}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav activeTab="guardians" />
     </View>
   );
 }
