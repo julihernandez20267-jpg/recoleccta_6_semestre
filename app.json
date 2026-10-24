@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend_recoleccta",
+    "name": "Recoleccta",
     "slug": "frontend_recoleccta",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.recoleccta.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
