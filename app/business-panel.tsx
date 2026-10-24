@@ -52,8 +52,11 @@ export default function BusinessPanelScreen() {
     }, [load]),
   );
 
-  const activeRequests = reports.filter((r) => normalizeStatus(r.status) !== 'completed').length;
-  const attendedRequests = reports.length - activeRequests;
+  // Los contadores suman recolecciones y bidones.
+  const activeRequests =
+    reports.filter((r) => normalizeStatus(r.status) !== 'completed').length +
+    containers.filter((c) => c.status !== 'delivered').length;
+  const attendedRequests = reports.length + containers.length - activeRequests;
   const businessName = user?.business?.name || user?.displayName || 'tu comercio';
 
   return (
@@ -131,10 +134,12 @@ export default function BusinessPanelScreen() {
               <View style={styles.statCard}>
                 <Text style={styles.statValue}>{activeRequests}</Text>
                 <Text style={styles.statLabel}>Solicitudes activas</Text>
+                <Text style={styles.statHint}>Recolecciones y bidones</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={[styles.statValue, { color: Colors.secondary }]}>{attendedRequests}</Text>
                 <Text style={styles.statLabel}>Ya atendidas</Text>
+                <Text style={styles.statHint}>Recogidas y entregados</Text>
               </View>
             </View>
 
@@ -310,6 +315,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: Colors.onSurfaceVariant,
+  },
+  statHint: {
+    fontSize: 11,
+    color: Colors.onSurfaceVariant,
+    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 17,
