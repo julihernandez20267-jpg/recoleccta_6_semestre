@@ -1,12 +1,14 @@
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
-import { completeGuardianRoute, getGuardianRoute, getReports, updateReportStatus } from '@/services/api';
+import { completeGuardianRoute, getDrivingRoute, getGuardianRoute, getReports, updateReportStatus } from '@/services/api';
+import { getCurrentCoords, locationErrorMessage } from '@/services/location';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppMap } from '@/components/maps/AppMap';
-import type { MapLine, MapMarker } from '@/components/maps/types';
+import { regionFor } from '@/components/maps/region';
+import type { LatLng, MapLine, MapMarker } from '@/components/maps/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { homeRouteFor } from '../constants/Roles';
@@ -26,6 +28,11 @@ export default function GuardianMapScreen() {
   const [loading, setLoading] = useState(true);
   const [apiFailed, setApiFailed] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  // Ubicación del guardián y camino en carro hasta el punto actual de su ruta.
+  const [myPosition, setMyPosition] = useState<LatLng | null>(null);
+  const [approach, setApproach] = useState<{ points: LatLng[]; distanceKm: number; minutes: number } | null>(null);
+  const [approachState, setApproachState] = useState<'idle' | 'locating' | 'done'>('idle');
+  const [approachMessage, setApproachMessage] = useState('');
 
   const pendingReports = sortByPriority(reports.filter((item) => normalizeStatus(item.status) === 'pending'));
   const inProgressReports = sortByPriority(reports.filter((item) => normalizeStatus(item.status) === 'in-progress'));
@@ -127,6 +134,8 @@ export default function GuardianMapScreen() {
       if (res.success) {
         Alert.alert('¡Ruta completada!', 'Buen trabajo. Si tienes otra ruta en cola, ya quedó activa.');
         setActiveWaypointIndex(0);
+        setApproach(null);
+        setApproachState('idle');
         await loadData();
       } else {
         throw new Error(res.message || 'Error al completar la ruta.');
@@ -138,19 +147,73 @@ export default function GuardianMapScreen() {
     }
   }
 
+  const targetPoint: LatLng | null = activeRoute?.coordinates?.[activeWaypointIndex] ?? null;
+
+  async function traceApproach(from: LatLng | null, to: LatLng | null) {
+    if (!from || !to) return;
+    try {
+      const res = await getDrivingRoute(from, to);
+      if (res.data) {
+        setApproach({
+          points: res.data.points,
+          distanceKm: res.data.distance_m / 1000,
+          minutes: Math.max(1, Math.round(res.data.duration_s / 60)),
+        });
+        setApproachMessage('');
+      }
+    } catch {
+      setApproach(null);
+      setApproachMessage('No pudimos calcular el camino ahora. Puedes usar Google Maps para llegar.');
+    }
+  }
+
+  // Pide la ubicación del guardián y traza el camino hasta el punto actual.
+  async function locateAndTrace(to: LatLng | null) {
+    setApproachState('locating');
+    const position = await getCurrentCoords();
+    if (position.ok) {
+      setMyPosition(position.coords);
+      await traceApproach(position.coords, to);
+    } else {
+      setApproach(null);
+      setApproachMessage(locationErrorMessage(position.reason, 'usa el botón de Google Maps para llegar'));
+    }
+    setApproachState('done');
+  }
+
+  // Apenas hay una ruta activa, se ubica al guardián y se traza el camino al primer punto.
+  useEffect(() => {
+    if (targetPoint && approachState === 'idle') locateAndTrace(targetPoint);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRoute?.routeId, approachState]);
+
+  function openNavigation() {
+    if (!targetPoint) return;
+    Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&destination=${targetPoint.latitude},${targetPoint.longitude}&travelmode=driving`,
+    );
+  }
+
   const handleAdvanceWaypoint = () => {
     if (!activeRoute?.coordinates || activeRoute.coordinates.length === 0) return;
-    setActiveWaypointIndex((prev) => (prev + 1) % activeRoute.coordinates.length);
+    const next = (activeWaypointIndex + 1) % activeRoute.coordinates.length;
+    setActiveWaypointIndex(next);
+    // El camino se recalcula hacia el nuevo punto desde la última ubicación conocida.
+    traceApproach(myPosition, activeRoute.coordinates[next]);
   };
 
   // Rutas (verde la activa, rojo las que están en cola) y reportes abiertos para el mapa.
-  const mapLines: MapLine[] = assignedRoutes.map((assignment: any) => ({
-    id: `route-${assignment.routeId}`,
-    coordinates: assignment.coordinates || [],
-    color: assignment.status === 'in-progress' ? '#2E7D32' : '#C62828',
-    width: assignment.status === 'in-progress' ? 5 : 3,
-  }));
+  const mapLines: MapLine[] = [
+    ...(approach ? [{ id: 'approach', coordinates: approach.points, color: '#1e63d6', width: 4 }] : []),
+    ...assignedRoutes.map((assignment: any) => ({
+      id: `route-${assignment.routeId}`,
+      coordinates: assignment.coordinates || [],
+      color: assignment.status === 'in-progress' ? '#2E7D32' : '#C62828',
+      width: assignment.status === 'in-progress' ? 5 : 3,
+    })),
+  ];
   const mapMarkers: MapMarker[] = [
+    ...(myPosition ? [{ id: 'me', coordinate: myPosition, color: '#1e63d6', title: 'Tú estás aquí' }] : []),
     ...assignedRoutes.flatMap((assignment: any) =>
       (assignment.coordinates || []).map((coordinate: any, index: number) => ({
         id: `route-pt-${assignment.routeId}-${index}`,
@@ -195,13 +258,19 @@ export default function GuardianMapScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.mapCard}>
             <AppMap
+              // Cuando aparece la ubicación del guardián, el mapa se reencuadra para mostrarlo junto a la ruta.
+              key={myPosition ? 'with-me' : 'route-only'}
               style={styles.map}
-              initialRegion={{
-                latitude: initialLat,
-                longitude: initialLng,
-                latitudeDelta: 0.03,
-                longitudeDelta: 0.03,
-              }}
+              initialRegion={
+                myPosition && activeRoute?.coordinates?.length
+                  ? regionFor([myPosition, ...activeRoute.coordinates])
+                  : {
+                      latitude: initialLat,
+                      longitude: initialLng,
+                      latitudeDelta: 0.03,
+                      longitudeDelta: 0.03,
+                    }
+              }
               lines={mapLines}
               markers={mapMarkers}
             />
@@ -245,6 +314,40 @@ export default function GuardianMapScreen() {
                       <MaterialCommunityIcons name="arrow-right-bold-circle-outline" size={18} color={Colors.primary} />
                       <Text style={styles.advanceButtonText}>Siguiente punto</Text>
                     </TouchableOpacity>
+                  </View>
+                )}
+
+                {activeRoute && (
+                  <View style={styles.approachBox}>
+                    {approachState === 'locating' ? (
+                      <View style={styles.approachRow}>
+                        <ActivityIndicator size="small" color={Colors.primary} />
+                        <Text style={styles.approachMuted}>Buscando tu ubicación...</Text>
+                      </View>
+                    ) : approach ? (
+                      <View style={styles.approachRow}>
+                        <MaterialCommunityIcons name="car-outline" size={20} color="#1e63d6" />
+                        <Text style={styles.approachText}>
+                          Al punto {activeWaypointIndex + 1}: {approach.distanceKm.toFixed(1).replace('.', ',')} km · {approach.minutes} min
+                        </Text>
+                      </View>
+                    ) : null}
+                    {approachMessage ? <Text style={styles.approachMuted}>{approachMessage}</Text> : null}
+                    {myPosition ? <Text style={styles.approachMuted}>Azul: tú y el camino hasta el punto.</Text> : null}
+                    <View style={styles.approachActions}>
+                      <TouchableOpacity style={styles.navButton} onPress={openNavigation} activeOpacity={0.85}>
+                        <MaterialCommunityIcons name="navigation-variant-outline" size={16} color={Colors.onPrimary} />
+                        <Text style={styles.navButtonText}>Navegar con Google Maps</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.refreshButton}
+                        onPress={() => locateAndTrace(targetPoint)}
+                        disabled={approachState === 'locating'}
+                      >
+                        <MaterialCommunityIcons name="crosshairs-gps" size={16} color={Colors.primary} />
+                        <Text style={styles.refreshButtonText}>Mi ubicación</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 )}
 
@@ -357,6 +460,62 @@ const styles = StyleSheet.create({
   routeSubtitle: {
     fontSize: 13,
     color: Colors.onSurfaceVariant,
+  },
+  approachBox: {
+    gap: 8,
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 4,
+  },
+  approachRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  approachText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.onSurface,
+  },
+  approachMuted: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: Colors.onSurfaceVariant,
+  },
+  approachActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.secondary,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  navButtonText: {
+    color: Colors.onPrimary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  refreshButtonText: {
+    color: Colors.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   waypointControlRow: {
     flexDirection: 'row',

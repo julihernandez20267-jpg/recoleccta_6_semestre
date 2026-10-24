@@ -1,5 +1,6 @@
 import { AppMap } from '@/components/maps/AppMap';
-import type { LatLng, MapMarker, MapRegion } from '@/components/maps/types';
+import { regionFor } from '@/components/maps/region';
+import type { LatLng, MapMarker } from '@/components/maps/types';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { ContainerStatusChip } from '@/components/ui/StatusChip';
 import { useAuth } from '@/context/AuthContext';
@@ -22,23 +23,6 @@ const NEXT_STEP: Partial<Record<ContainerStatus, { status: ContainerStatus; labe
   pending: { status: 'in-progress', label: 'Marcar en camino', icon: 'truck-delivery-outline' },
   'in-progress': { status: 'delivered', label: 'Marcar entregado', icon: 'check-bold' },
 };
-
-// Encuadre del mapa para que se vean todos los puntos (la ruta, el admin y el comercio).
-function regionFor(points: LatLng[]): MapRegion {
-  const lats = points.map((p) => p.latitude);
-  const lngs = points.map((p) => p.longitude);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const span = Math.max(maxLat - minLat, maxLng - minLng);
-  return {
-    latitude: (minLat + maxLat) / 2,
-    longitude: (minLng + maxLng) / 2,
-    latitudeDelta: span * 1.4 + 0.004,
-    longitudeDelta: span * 1.4 + 0.004,
-  };
-}
 
 export default function ContainerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
