@@ -77,11 +77,17 @@ export default function LoginScreen() {
         await login(session);
         router.replace(homeRouteFor(session.user.role));
       } else {
-        // La cuenta nueva entra directamente, sin volver a escribir los datos.
+        // Después de crear la cuenta se vuelve a "Iniciar sesión" con el correo ya escrito.
         const business = accountType === 'business' ? { name: businessName, type: businessType, phone } : undefined;
-        const session = await registerUser(email, password, name, business);
-        await login(session);
-        router.replace(homeRouteFor(session.user.role));
+        await registerUser(email, password, name, business);
+        setMode('login');
+        setPassword('');
+        Alert.alert(
+          'Cuenta creada',
+          accountType === 'business'
+            ? 'Tu comercio quedó registrado. Ahora inicia sesión con tu correo y contraseña.'
+            : 'Tu cuenta quedó creada. Ahora inicia sesión con tu correo y contraseña.',
+        );
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error al autenticar.';
