@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import ContainerRequest, User
 from app.schemas import ContainerRequestIn, ContainerStatusIn, ok
-from app.security import get_current_user, require_business, require_staff
+from app.security import get_current_user, require_admin, require_business
 
 router = APIRouter(prefix="/containers", tags=["containers"])
 
@@ -15,11 +15,11 @@ STATUSES = {"pending", "in-progress", "delivered"}
 
 @router.get("")
 def list_requests(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """El comercio ve sus solicitudes; el admin y los guardianes ven todas."""
+    """El comercio ve sus solicitudes; el administrador ve todas."""
     query = select(ContainerRequest).order_by(ContainerRequest.created_at.desc(), ContainerRequest.id.desc())
     if user.role == "business":
         query = query.where(ContainerRequest.business_id == user.id)
-    elif user.role not in ("admin", "guardian"):
+    elif user.role != "admin":
         raise HTTPException(status_code=403, detail="No tienes permisos para ver las solicitudes de bidones.")
     return ok("OK", requests=[r.to_dict() for r in db.scalars(query).all()])
 
@@ -47,7 +47,7 @@ def create_request(body: ContainerRequestIn, user: User = Depends(require_busine
 def update_status(
     request_id: int,
     body: ContainerStatusIn,
-    user: User = Depends(require_staff),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     status = body.status.strip().lower()

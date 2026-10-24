@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { getContainerRequests, updateContainerStatus } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/Colors';
 import { CONTAINER_STATUS_META, ContainerStatus, formatRelative, OIL_LABELS } from '../constants/Reports';
+import { homeRouteFor } from '../constants/Roles';
 
 type FilterKey = 'open' | ContainerStatus | 'all';
 
@@ -44,6 +45,11 @@ export default function ContainersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [failed, setFailed] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  // Las solicitudes de bidón las atiende solo el administrador.
+  useEffect(() => {
+    if (user && user.role !== 'admin') router.replace(homeRouteFor(user.role));
+  }, [user, router]);
 
   const load = useCallback(async () => {
     setFailed(false);
@@ -217,7 +223,7 @@ export default function ContainersScreen() {
           )}
         </ScrollView>
       )}
-      {user?.role === 'guardian' || user?.role === 'admin' ? <BottomNav /> : null}
+      <BottomNav />
     </View>
   );
 }

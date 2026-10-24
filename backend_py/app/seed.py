@@ -31,14 +31,14 @@ PERMISSIONS = {
     "guardians.create": "Crear guardianes",
     "profile.update": "Editar el perfil propio",
     "containers.request": "Solicitar bidones para aceite usado",
-    "containers.manage": "Atender solicitudes de bidones",
+    "containers.manage": "Atender solicitudes de bidones (solo administrador)",
 }
 
 ROLE_PERMISSIONS = {
     "admin": list(PERMISSIONS.keys()),
     "guardian": [
         "reports.create", "reports.read", "reports.update_status", "routes.read", "routes.complete",
-        "profile.update", "containers.manage",
+        "profile.update",
     ],
     "user": ["reports.create", "reports.read", "profile.update"],
     "business": ["reports.create", "reports.read", "profile.update", "containers.request"],
@@ -61,6 +61,9 @@ def seed_base(db: Session) -> None:
             role = Role(name=name, description=desc)
             db.add(role)
             db.flush()
+        # Deja los permisos del rol exactamente como están definidos arriba (agrega y quita).
+        wanted = set(ROLE_PERMISSIONS[name])
+        role.permissions[:] = [p for p in role.permissions if p.code in wanted]
         current = {p.code for p in role.permissions}
         for code in ROLE_PERMISSIONS[name]:
             if code not in current:

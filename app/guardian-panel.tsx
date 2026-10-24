@@ -2,7 +2,7 @@ import { PriorityBadge, StatusChip } from '@/components/ui/StatusChip';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ConnectionError } from '@/components/ui/ConnectionError';
 import { useAuth } from '@/context/AuthContext';
-import { getContainerRequests, getGuardianRoute, getReports } from '@/services/api';
+import { getGuardianRoute, getReports } from '@/services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -26,7 +26,6 @@ export default function GuardianPanelScreen() {
 
   const [assignedRoute, setAssignedRoute] = useState<any>(null);
   const [queuedRoutes, setQueuedRoutes] = useState(0);
-  const [openContainers, setOpenContainers] = useState(0);
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiFailed, setApiFailed] = useState(false);
@@ -47,12 +46,10 @@ export default function GuardianPanelScreen() {
     setLoading(true);
     setApiFailed(false);
     try {
-      const [routeRes, reportsRes, containersRes] = await Promise.all([
+      const [routeRes, reportsRes] = await Promise.all([
         getGuardianRoute(user.uid),
         getReports(),
-        getContainerRequests(),
       ]);
-      setOpenContainers((containersRes.data?.requests || []).filter((r: any) => r.status !== 'delivered').length);
 
       setQueuedRoutes((routeRes.data?.assignments || []).filter((a: any) => a.status === 'pending').length);
       if (routeRes.success && routeRes.data) {
@@ -153,19 +150,6 @@ export default function GuardianPanelScreen() {
               </TouchableOpacity>
             )}
           </View>
-
-          <TouchableOpacity style={styles.containersCard} onPress={() => router.push('/containers')} activeOpacity={0.9}>
-            <MaterialCommunityIcons name="barrel-outline" size={26} color={Colors.secondary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.containersTitle}>Bidones para aceite</Text>
-              <Text style={styles.containersSub}>
-                {openContainers === 0
-                  ? 'No hay bidones pendientes por entregar.'
-                  : `${openContainers} ${openContainers === 1 ? 'solicitud' : 'solicitudes'} de comercios por atender`}
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={Colors.onSurfaceVariant} />
-          </TouchableOpacity>
 
           <Text style={styles.sectionTitle}>Ruta asignada</Text>
 
@@ -453,27 +437,6 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: Colors.primary,
-  },
-  containersCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.outlineVariant,
-  },
-  containersTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: Colors.onSurface,
-  },
-  containersSub: {
-    fontSize: 12,
-    color: Colors.onSurfaceVariant,
-    marginTop: 2,
   },
   reportCard: {
     borderRadius: 14,

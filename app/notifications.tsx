@@ -72,8 +72,8 @@ async function buildNotifications(user: AuthUser): Promise<NotificationItem[]> {
     reports.forEach((r) => items.push(reportNotification(r, false)));
   }
 
-  // Bidones: el comercio ve los suyos; el admin y los guardianes, los que faltan por entregar.
-  if (user.role !== 'user') {
+  // Bidones: el comercio ve los suyos; el administrador, los que faltan por entregar.
+  if (user.role === 'business' || user.role === 'admin') {
     const containersRes = await getContainerRequests();
     (containersRes.data?.requests || [])
       .filter((c: any) => user.role === 'business' || c.status !== 'delivered')
