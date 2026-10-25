@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const INACTIVITY_WARNING_MS = 30 * 1000; // 30 segundos
+const INACTIVITY_WARNING_MS = 10 * 60 * 1000; // 10 minutos
 const LOGOUT_GRACE_PERIOD_MS = 4 * 1000; // 4 segundos más después del aviso
 const COUNTDOWN_INTERVAL_MS = 1000; // 1 segundo
 
