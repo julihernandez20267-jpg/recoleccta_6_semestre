@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
@@ -12,6 +13,8 @@ export default function SplashScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const progress = useRef(new Animated.Value(0)).current;
+  // En la web, al abrir o recargar otra página el splash queda montado debajo; solo redirige si está visible.
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     Animated.loop(
@@ -34,7 +37,7 @@ export default function SplashScreen() {
   }, [progress]);
 
   useEffect(() => {
-    if (loading) {
+    if (loading || !isFocused) {
       return;
     }
 
@@ -44,7 +47,7 @@ export default function SplashScreen() {
     }
 
     router.replace(homeRouteFor(user.role));
-  }, [loading, router, user]);
+  }, [loading, router, user, isFocused]);
 
   const barWidth = progress.interpolate({
     inputRange: [0, 1],

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.database import Base, SessionLocal, engine
-from app.models import BusinessProfile, ContainerRequest, Permission, Report, Role, Route, RouteAssignment, User  # noqa: F401
+from app.models import BusinessProfile, ContainerRequest, Permission, Report, Role, Route, RouteAssignment, User, utcnow
 from app.security import hash_password
 
 log = logging.getLogger("recoleccta.seed")
@@ -98,47 +98,75 @@ def seed_admin(db: Session) -> None:
     log.info("Administrador inicial listo: %s", config.ADMIN_EMAIL)
 
 
-def seed_demo(db: Session) -> None:
-    """Datos de ejemplo opcionales (python seed.py --demo)."""
-    guardian_role = db.scalar(select(Role).where(Role.name == "guardian"))
-    user_role = db.scalar(select(Role).where(Role.name == "user"))
+def _demo_user(db: Session, email: str, password: str, name: str, role: Role) -> User:
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None:
+        user = User(email=email, password_hash=hash_password(password), display_name=name, role_id=role.id)
+        db.add(user)
+        db.flush()
+    return user
 
-    guardian = db.scalar(select(User).where(User.email == "guardian@recoleccta.com"))
-    if guardian is None:
-        guardian = User(email="guardian@recoleccta.com", password_hash=hash_password("guardian123"),
-                        display_name="Mateo Rivera", role_id=guardian_role.id)
-        db.add(guardian)
-    citizen = db.scalar(select(User).where(User.email == "usuario@recoleccta.com"))
-    if citizen is None:
-        citizen = User(email="usuario@recoleccta.com", password_hash=hash_password("usuario123"),
-                       display_name="Laura Gómez", role_id=user_role.id)
-        db.add(citizen)
+
+def seed_demo(db: Session) -> None:
+    """Datos de ejemplo en Girardot (python seed.py --demo). Solo para pruebas locales y capturas."""
+    roles = {r.name: r for r in db.scalars(select(Role))}
+
+    guardian = _demo_user(db, "guardian@recoleccta.com", "guardian123", "Mateo Rivera", roles["guardian"])
+    _demo_user(db, "guardian2@recoleccta.com", "guardian123", "Sofía Castaño", roles["guardian"])
+    citizen = _demo_user(db, "usuario@recoleccta.com", "usuario123", "Laura Gómez", roles["user"])
+    neighbor = _demo_user(db, "vecino@recoleccta.com", "usuario123", "Andrés Molina", roles["user"])
+    restaurant = _demo_user(db, "restaurante@recoleccta.com", "comercio123", "Diana Ruiz", roles["business"])
+    workshop = _demo_user(db, "taller@recoleccta.com", "comercio123", "Jorge Prada", roles["business"])
+    for user, name, kind, phone in (
+        (restaurant, "Asadero El Fogón", "Restaurante", "3157654321"),
+        (workshop, "Taller Motos El Puente", "Taller mecánico", "3209876543"),
+    ):
+        if db.get(BusinessProfile, user.id) is None:
+            db.add(BusinessProfile(user_id=user.id, business_name=name, business_type=kind, phone=phone))
     db.flush()
 
     if db.get(Route, "r-demo-1") is None:
-        db.add(Route(id="r-demo-1", name="Ruta Centro", zone="La Candelaria", points=json.dumps([
-            {"latitude": 4.5981, "longitude": -74.0760},
-            {"latitude": 4.6010, "longitude": -74.0725},
-            {"latitude": 4.6045, "longitude": -74.0700},
+        db.add(Route(id="r-demo-1", name="Ruta Centro", zone="Centro", points=json.dumps([
+            {"latitude": 4.30362, "longitude": -74.80312},
+            {"latitude": 4.30245, "longitude": -74.80105},
+            {"latitude": 4.30118, "longitude": -74.79902},
+            {"latitude": 4.29986, "longitude": -74.79735},
         ])))
-        db.add(Route(id="r-demo-2", name="Ruta Teusaquillo", zone="Teusaquillo", points=json.dumps([
-            {"latitude": 4.6272, "longitude": -74.0732},
-            {"latitude": 4.6310, "longitude": -74.0690},
-            {"latitude": 4.6345, "longitude": -74.0655},
+        db.add(Route(id="r-demo-2", name="Ruta Kennedy", zone="Kennedy", points=json.dumps([
+            {"latitude": 4.30094, "longitude": -74.80483},
+            {"latitude": 4.29921, "longitude": -74.80652},
+            {"latitude": 4.29778, "longitude": -74.80811},
+        ])))
+        db.add(Route(id="r-demo-3", name="Ruta Alto de la Cruz", zone="Alto de la Cruz", points=json.dumps([
+            {"latitude": 4.31115, "longitude": -74.81311},
+            {"latitude": 4.30968, "longitude": -74.81102},
         ])))
         db.flush()
-        db.add(RouteAssignment(guardian_id=guardian.id, route_id="r-demo-1", status="in-progress"))
+        db.add(RouteAssignment(guardian_id=guardian.id, route_id="r-demo-1", status="in-progress", started_at=utcnow()))
         db.add(RouteAssignment(guardian_id=guardian.id, route_id="r-demo-2", status="pending"))
 
     if not db.scalar(select(Report).limit(1)):
-        db.add_all([
-            Report(address="Cra 7 # 12-40", neighborhood="La Candelaria", type="Residuo mixto",
-                   latitude=4.5995, longitude=-74.0745, observations="Contenedor lleno desde ayer.",
-                   reporter_name="Laura Gómez", created_by=citizen.id),
-            Report(address="Calle 39 # 17-20", neighborhood="Teusaquillo", type="Reciclable",
-                   latitude=4.6290, longitude=-74.0710, observations="Cartón acumulado en la esquina.",
-                   reporter_name="Laura Gómez", created_by=citizen.id),
-        ])
+        examples = [
+            (citizen, "Calle 17 # 10-25", "Centro", "Plástico", 4.30302, -74.80201, "Contenedor lleno desde ayer, hay bolsas alrededor.", "completed"),
+            (citizen, "Carrera 7 # 14-30", "Alto de la Cruz", "Papel", 4.31042, -74.81208, "Cajas de cartón acumuladas en la esquina.", "in-progress"),
+            (neighbor, "Avenida Kennedy # 20-11", "Kennedy", "Vidrio", 4.30011, -74.80577, "Botellas junto al punto ecológico.", "pending"),
+            (neighbor, "Calle 30 # 9-40", "Santander", "Orgánico", 4.30663, -74.80092, None, "pending"),
+            (restaurant, "Carrera 10 # 16-08", "Centro", "Aceite de cocina", 4.30410, -74.80265, "Dos canecas de aceite usado listas para recoger.", "pending"),
+            (workshop, "Calle 40 # 16-25", "Altos del Peñón", "Aceite de motor", 4.29780, -74.79530, "Aceite de cambio de motor, unos 20 litros.", "in-progress"),
+        ]
+        for owner, address, hood, kind, lat, lng, notes, status in examples:
+            db.add(Report(
+                address=address, neighborhood=hood, type=kind, latitude=lat, longitude=lng, observations=notes,
+                reporter_name=owner.display_name, created_by=owner.id, status=status,
+                assigned_guardian_id=guardian.id if status != "pending" else None,
+                guardian_name=guardian.display_name if status != "pending" else None,
+            ))
+
+    if not db.scalar(select(ContainerRequest).limit(1)):
+        db.add(ContainerRequest(business_id=restaurant.id, oil_type="cooking", quantity=2, address="Carrera 10 # 16-08, Centro, Girardot",
+                                latitude=4.30410, longitude=-74.80265, notes="Entregar en la puerta de la cocina, de 2 a 5 p. m."))
+        db.add(ContainerRequest(business_id=workshop.id, oil_type="motor", quantity=1, address="Calle 40 # 16-25, Altos del Peñón, Girardot",
+                                latitude=4.29780, longitude=-74.79530, status="delivered", handled_by_name="Administrador"))
     db.commit()
 
 
